@@ -168,6 +168,8 @@ class DualFranka(VecTask):
         """
         other_asset_options = gymapi.AssetOptions()
         cup_asset = self.gym.load_asset(self.sim, asset_root, cup_asset_file, other_asset_options)
+        # TODO
+        cup_asset = self.gym.load_asset(self.sim, asset_root, spoon_asset_file, other_asset_options)
 
         # load shelf and spoon
         box_dims = gymapi.Vec3(0.1, 0.04, 0.1)
@@ -454,7 +456,7 @@ class DualFranka(VecTask):
         cup_local_grasp_pose = gymapi.Transform()
 
         cup_local_grasp_pose.p.x = 0
-        cup_local_grasp_pose.p.y = 0.05  # half of the cup height
+        cup_local_grasp_pose.p.y = 0.005  # half of the cup height
         cup_local_grasp_pose.p.z = 0
         cup_local_grasp_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
 
@@ -467,7 +469,7 @@ class DualFranka(VecTask):
 
         spoon_local_grasp_pose = gymapi.Transform()
         spoon_local_grasp_pose.p.x = 0
-        spoon_local_grasp_pose.p.y = 0.005
+        spoon_local_grasp_pose.p.y = 0.08
         spoon_local_grasp_pose.p.z = 0
         spoon_local_grasp_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
 
