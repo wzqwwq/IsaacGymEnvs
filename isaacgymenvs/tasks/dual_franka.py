@@ -260,7 +260,7 @@ class DualFranka(VecTask):
         pose_1.p.y = 0.0
         pose_1.p.z = -0.6
         pose_1.r = gymapi.Quat(-0.707107, 0.0, 0.0, 0.707107)
-
+        """
         box_pose = gymapi.Transform()
         box_pose.p.x = table_pose.p.x - 0.3
         box_pose.p.y = table_pose.p.y + 0.5 * table_dims.y + 0.5 * box_dims.y
@@ -283,6 +283,32 @@ class DualFranka(VecTask):
         shelf_pose.p.x = table_pose.p.x - 0.3
         shelf_pose.p.y = 0.4
         shelf_pose.p.z = 0.29
+        shelf_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
+        """
+
+        # exchange position each other
+        box_pose = gymapi.Transform()
+        box_pose.p.x = table_pose.p.x - 0.3
+        box_pose.p.y = table_pose.p.y + 0.5 * table_dims.y + 0.5 * box_dims.y
+        box_pose.p.z = 0.29
+        box_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
+
+        cup_pose = gymapi.Transform()
+        cup_pose.p.x = table_pose.p.x - 0.3
+        cup_pose.p.y = box_pose.p.y + 0.5 * box_dims.y
+        cup_pose.p.z = 0.29
+        cup_pose.r = gymapi.Quat(0.0, -0.287, 0.0, 0.95793058)
+
+        spoon_pose = gymapi.Transform()
+        spoon_pose.p.x = table_pose.p.x - 0.29
+        spoon_pose.p.y = 0.5
+        spoon_pose.p.z = -0.29
+        spoon_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
+
+        shelf_pose = gymapi.Transform()
+        shelf_pose.p.x = table_pose.p.x - 0.3
+        shelf_pose.p.y = 0.4
+        shelf_pose.p.z = -0.29
         shelf_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
 
         # compute aggregate size
@@ -655,7 +681,8 @@ class DualFranka(VecTask):
         # reset cup
         self.cup_positions[env_ids, 0] = -0.3
         self.cup_positions[env_ids, 1] = 0.44
-        self.cup_positions[env_ids, 2] = -0.29
+      #  self.cup_positions[env_ids, 2] = -0.29
+        self.cup_positions[env_ids, 2] = 0.29
         self.cup_orientations[env_ids, 0:3] = 0.0
         self.cup_orientations[env_ids, 1] = -0.287
         self.cup_orientations[env_ids, 3] = 0.95793058
@@ -665,7 +692,8 @@ class DualFranka(VecTask):
         # reset spoon
         self.spoon_positions[env_ids, 0] = -0.29
         self.spoon_positions[env_ids, 1] = 0.5
-        self.spoon_positions[env_ids, 2] = 0.29
+       # self.spoon_positions[env_ids, 2] = 0.29
+        self.spoon_positions[env_ids, 2] = -0.29
         self.spoon_orientations[env_ids, 0] = 0.0
         self.spoon_orientations[env_ids, 1] = 0.0
         self.spoon_orientations[env_ids, 2] = 0.0
@@ -1256,8 +1284,9 @@ def compute_franka_reward(
     # </editor-fold>
 
     ## sum of rewards
-    sf = 1  # spoon flag
-    cf = 0  # cup flag
+    sf = 0  # spoon flag
+    cf = 1
+    # cup flag
 
     rewards = dist_reward_scale * (dist_reward * sf + dist_reward_1 * cf) \
               + rot_reward_scale * (rot_reward * sf + rot_reward_1 * cf) \
