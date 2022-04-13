@@ -167,9 +167,7 @@ class DualFranka(VecTask):
         # shelf_asset = self.gym.create_box(self.sim, shelf_dims.x, shelf_dims.y, shelf_dims.z, asset_options)
         """
         other_asset_options = gymapi.AssetOptions()
-        # cup_asset = self.gym.load_asset(self.sim, asset_root, cup_asset_file, other_asset_options)
-        # TODO
-        cup_asset = self.gym.load_asset(self.sim, asset_root, spoon_asset_file, other_asset_options)
+        cup_asset = self.gym.load_asset(self.sim, asset_root, cup_asset_file, other_asset_options)
 
         # load shelf and spoon
         box_dims = gymapi.Vec3(0.1, 0.04, 0.1)
@@ -279,25 +277,25 @@ class DualFranka(VecTask):
         box_pose = gymapi.Transform()
         box_pose.p.x = table_pose.p.x - 0.3
         box_pose.p.y = table_pose.p.y + 0.5 * table_dims.y + 0.5 * box_dims.y
-        box_pose.p.z = 0.29
+        box_pose.p.z = -0.29
         box_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
 
         cup_pose = gymapi.Transform()
         cup_pose.p.x = table_pose.p.x - 0.3
-        cup_pose.p.y = 0.5
+        cup_pose.p.y = box_pose.p.y + 0.5 * box_dims.y
         cup_pose.p.z = -0.29
-        cup_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
+        cup_pose.r = gymapi.Quat(0.0, -0.287, 0.0, 0.95793058)
 
         spoon_pose = gymapi.Transform()
         spoon_pose.p.x = table_pose.p.x - 0.29
-        spoon_pose.p.y = box_pose.p.y + 0.5 * box_dims.y
+        spoon_pose.p.y = 0.5
         spoon_pose.p.z = 0.29
-        spoon_pose.r = gymapi.Quat(0.0, -0.287, 0.0, 0.95793058)
+        spoon_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
 
         shelf_pose = gymapi.Transform()
         shelf_pose.p.x = table_pose.p.x - 0.3
         shelf_pose.p.y = 0.4
-        shelf_pose.p.z = -0.29
+        shelf_pose.p.z = 0.29
         shelf_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
 
         """
