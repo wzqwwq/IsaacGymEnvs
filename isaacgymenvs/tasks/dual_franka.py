@@ -9,6 +9,8 @@ from isaacgym.torch_utils import *
 from tasks.base.vec_task import VecTask
 from typing import Dict, List, Tuple, Union
 
+shelf_as_box = True
+spoon_as_box = False
 
 class DualFranka(VecTask):
     # define the config
@@ -165,7 +167,7 @@ class DualFranka(VecTask):
         table_asset = self.gym.create_box(self.sim, table_dims.x, table_dims.y, table_dims.z, asset_options)
         # shelf_dims = gymapi.Vec3(0.15, 0.2, 0.15)
         # shelf_asset = self.gym.create_box(self.sim, shelf_dims.x, shelf_dims.y, shelf_dims.z, asset_options)
-        """
+
         other_asset_options = gymapi.AssetOptions()
         cup_asset = self.gym.load_asset(self.sim, asset_root, cup_asset_file, other_asset_options)
 
@@ -173,21 +175,28 @@ class DualFranka(VecTask):
         box_dims = gymapi.Vec3(0.1, 0.04, 0.1)
         other_asset_options.fix_base_link = True
         shelf_asset = self.gym.load_asset(self.sim, asset_root, shelf_asset_file, other_asset_options)
+        if shelf_as_box:
+            shelf_box_dims = gymapi.Vec3(0.2, 0.1, 0.2)
+            shelf_asset = self.gym.create_box(self.sim, shelf_box_dims.x, shelf_box_dims.y, shelf_box_dims.z,
+                                              other_asset_options)
         box_asset = self.gym.create_box(self.sim, box_dims.x, box_dims.y, box_dims.z, other_asset_options)
         other_asset_options.fix_base_link = False
         spoon_asset = self.gym.load_asset(self.sim, asset_root, spoon_asset_file, other_asset_options)
-        """
-        other_asset_options = gymapi.AssetOptions()
-        cup_asset = self.gym.load_asset(self.sim, asset_root, spoon_asset_file, other_asset_options)
+        if spoon_as_box:
+            spoon_box_dims = gymapi.Vec3(0.03, 0.03, 0.03)
+            spoon_asset = self.gym.create_box(self.sim, spoon_box_dims.x, spoon_box_dims.y, spoon_box_dims.z,
+                                              other_asset_options)
 
-        # load shelf and spoon
-        box_dims = gymapi.Vec3(0.1, 0.04, 0.1)
-        other_asset_options.fix_base_link = True
-        shelf_asset = self.gym.create_box(self.sim, box_dims.x, box_dims.y, box_dims.z, other_asset_options)
-        box_asset = self.gym.load_asset(self.sim, asset_root, shelf_asset_file, other_asset_options)
-        other_asset_options.fix_base_link = False
-        spoon_asset = self.gym.load_asset(self.sim, asset_root, cup_asset_file, other_asset_options)
-
+        # other_asset_options = gymapi.AssetOptions()
+        # cup_asset = self.gym.load_asset(self.sim, asset_root, spoon_asset_file, other_asset_options)
+        #
+        # # load shelf and spoon
+        # box_dims = gymapi.Vec3(0.1, 0.04, 0.1)
+        # other_asset_options.fix_base_link = True
+        # shelf_asset = self.gym.create_box(self.sim, box_dims.x, box_dims.y, box_dims.z, other_asset_options)
+        # box_asset = self.gym.load_asset(self.sim, asset_root, shelf_asset_file, other_asset_options)
+        # other_asset_options.fix_base_link = False
+        # spoon_asset = self.gym.load_asset(self.sim, asset_root, cup_asset_file, other_asset_options)
 
         # box_opts = gymapi.AssetOptions()
         # box_opts.density = 400
@@ -273,7 +282,7 @@ class DualFranka(VecTask):
         pose_1.p.y = 0.0
         pose_1.p.z = -0.6
         pose_1.r = gymapi.Quat(-0.707107, 0.0, 0.0, 0.707107)
-        """
+
         box_pose = gymapi.Transform()
         box_pose.p.x = table_pose.p.x - 0.3
         box_pose.p.y = table_pose.p.y + 0.5 * table_dims.y + 0.5 * box_dims.y
@@ -289,40 +298,42 @@ class DualFranka(VecTask):
         spoon_pose = gymapi.Transform()
         spoon_pose.p.x = table_pose.p.x - 0.29
         spoon_pose.p.y = 0.5
+        if spoon_as_box:
+            spoon_pose.p.y = 0.5 + 0.5 * spoon_box_dims.y
         spoon_pose.p.z = 0.29
         spoon_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
 
         shelf_pose = gymapi.Transform()
         shelf_pose.p.x = table_pose.p.x - 0.3
         shelf_pose.p.y = 0.4
+        if shelf_as_box:
+            shelf_pose.p.y = 0.4 + 0.5 * shelf_box_dims.y
         shelf_pose.p.z = 0.29
         shelf_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
 
-        """
-        box_pose = gymapi.Transform()
-        box_pose.p.x = table_pose.p.x - 0.3
-        box_pose.p.y = 0.4
-        box_pose.p.z = -0.29
-        box_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
-
-        cup_pose = gymapi.Transform()
-        cup_pose.p.x = table_pose.p.x - 0.3
-        cup_pose.p.y = box_pose.p.y + 0.5 * box_dims.y
-        cup_pose.p.z = -0.29
-        cup_pose.r = gymapi.Quat(0.0, -0.287, 0.0, 0.95793058)
-
-        spoon_pose = gymapi.Transform()
-        spoon_pose.p.x = table_pose.p.x - 0.29
-        spoon_pose.p.y = 0.5
-        spoon_pose.p.z = 0.29
-        spoon_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
-
-        shelf_pose = gymapi.Transform()
-        shelf_pose.p.x = table_pose.p.x - 0.3
-        shelf_pose.p.y = table_pose.p.y + 0.5 * table_dims.y + 0.5 * box_dims.y
-        shelf_pose.p.z = 0.29
-        shelf_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
-
+        # box_pose = gymapi.Transform()
+        # box_pose.p.x = table_pose.p.x - 0.3
+        # box_pose.p.y = 0.4
+        # box_pose.p.z = -0.29
+        # box_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
+        #
+        # cup_pose = gymapi.Transform()
+        # cup_pose.p.x = table_pose.p.x - 0.3
+        # cup_pose.p.y = box_pose.p.y + 0.5 * box_dims.y
+        # cup_pose.p.z = -0.29
+        # cup_pose.r = gymapi.Quat(0.0, -0.287, 0.0, 0.95793058)
+        #
+        # spoon_pose = gymapi.Transform()
+        # spoon_pose.p.x = table_pose.p.x - 0.29
+        # spoon_pose.p.y = 0.5
+        # spoon_pose.p.z = 0.29
+        # spoon_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
+        #
+        # shelf_pose = gymapi.Transform()
+        # shelf_pose.p.x = table_pose.p.x - 0.3
+        # shelf_pose.p.y = table_pose.p.y + 0.5 * table_dims.y + 0.5 * box_dims.y
+        # shelf_pose.p.z = 0.29
+        # shelf_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
 
         # compute aggregate size
         num_franka_bodies = self.gym.get_asset_rigid_body_count(franka_asset)
@@ -393,6 +404,10 @@ class DualFranka(VecTask):
         self.cup_handle = self.gym.find_actor_rigid_body_handle(env_ptr, cup_actor, "base_link")
         self.spoon_handle = self.gym.find_actor_rigid_body_handle(env_ptr, spoon_actor, "base_link")
         self.shelf_handle = self.gym.find_actor_rigid_body_handle(env_ptr, shelf_actor, "base_link")
+        if shelf_as_box:
+            self.spoon_handle = self.gym.find_actor_rigid_body_handle(env_ptr, spoon_actor, "box")
+        if spoon_as_box:
+            self.shelf_handle = self.gym.find_actor_rigid_body_handle(env_ptr, shelf_actor, "box")
 
         self.init_data()
         # self.gym.get_sim_rigid_body_states(self.sim,gymapi.STATE_ALL)
@@ -468,6 +483,8 @@ class DualFranka(VecTask):
         spoon_local_grasp_pose = gymapi.Transform()
         spoon_local_grasp_pose.p.x = 0
         spoon_local_grasp_pose.p.y = 0.005
+        if shelf_as_box:
+            spoon_local_grasp_pose.p.y = 0.0
         spoon_local_grasp_pose.p.z = 0
         spoon_local_grasp_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
 
@@ -690,7 +707,7 @@ class DualFranka(VecTask):
         self.franka_dof_pos_1[env_ids, :] = pos_1
         self.franka_dof_vel_1[env_ids, :] = torch.zeros_like(self.franka_dof_vel_1[env_ids])
         self.franka_dof_targets[env_ids, self.num_franka_dofs: 2 * self.num_franka_dofs] = pos_1
-        '''
+
         # reset cup
         self.cup_positions[env_ids, 0] = -0.3
         self.cup_positions[env_ids, 1] = 0.44
@@ -704,6 +721,8 @@ class DualFranka(VecTask):
         # reset spoon
         self.spoon_positions[env_ids, 0] = -0.29
         self.spoon_positions[env_ids, 1] = 0.5
+        if spoon_as_box:
+            self.spoon_positions[env_ids, 1] = 0.5 + 0.015
         self.spoon_positions[env_ids, 2] = 0.29
         self.spoon_orientations[env_ids, 0] = 0.0
         self.spoon_orientations[env_ids, 1] = 0.0
@@ -712,27 +731,25 @@ class DualFranka(VecTask):
         self.spoon_angvels[env_ids] = 0.0
         self.spoon_linvels[env_ids] = 0.0
 
-        '''
-
-        # reset cup
-        self.cup_positions[env_ids, 0] = -0.29
-        self.cup_positions[env_ids, 1] = 0.5
-        self.cup_positions[env_ids, 2] = -0.29
-        self.cup_orientations[env_ids, 0:3] = 0.0
-        self.cup_orientations[env_ids, 1] = -0.0
-        self.cup_orientations[env_ids, 3] = 1.0
-        self.cup_linvels[env_ids] = 0.0
-        self.cup_angvels[env_ids] = 0.0
-
-        # reset spoon
-        self.spoon_positions[env_ids, 0] = -0.3
-        self.spoon_positions[env_ids, 1] = 0.44
-        self.spoon_positions[env_ids, 2] = 0.29
-        self.spoon_orientations[env_ids, 0:3] = 0.0
-        self.spoon_orientations[env_ids, 1] = 0.0
-        self.spoon_orientations[env_ids, 3] = 1.0
-        self.spoon_angvels[env_ids] = 0.0
-        self.spoon_linvels[env_ids] = 0.0
+        # # reset cup
+        # self.cup_positions[env_ids, 0] = -0.29
+        # self.cup_positions[env_ids, 1] = 0.5
+        # self.cup_positions[env_ids, 2] = -0.29
+        # self.cup_orientations[env_ids, 0:3] = 0.0
+        # self.cup_orientations[env_ids, 1] = -0.0
+        # self.cup_orientations[env_ids, 3] = 1.0
+        # self.cup_linvels[env_ids] = 0.0
+        # self.cup_angvels[env_ids] = 0.0
+        #
+        # # reset spoon
+        # self.spoon_positions[env_ids, 0] = -0.3
+        # self.spoon_positions[env_ids, 1] = 0.44
+        # self.spoon_positions[env_ids, 2] = 0.29
+        # self.spoon_orientations[env_ids, 0:3] = 0.0
+        # self.spoon_orientations[env_ids, 1] = 0.0
+        # self.spoon_orientations[env_ids, 3] = 1.0
+        # self.spoon_angvels[env_ids] = 0.0
+        # self.spoon_linvels[env_ids] = 0.0
 
         # reset shelf
         # self.shelf_positions[env_ids, 0] = -0.3
@@ -1186,8 +1203,8 @@ def compute_franka_reward(
     d = torch.norm(franka_grasp_pos - spoon_grasp_pos, p=2, dim=-1)
     dist_reward = 1.0 / (1.0 + d ** 2)
     dist_reward *= dist_reward
+    dist_reward = torch.where(d <= 0.06, dist_reward * 2, dist_reward)
     dist_reward = torch.where(d <= 0.02, dist_reward * 2, dist_reward)
-    # dist_reward = torch.where(d <= 0.01, dist_reward * 2, dist_reward)
 
     d_1 = torch.norm(franka_grasp_pos_1 - cup_grasp_pos, p=2, dim=-1)
     dist_reward_1 = 1.0 / (1.0 + d_1 ** 2)
@@ -1317,8 +1334,8 @@ def compute_franka_reward(
     # </editor-fold>
 
     ## sum of rewards
-    sf = 0  # spoon flag
-    cf = 1
+    sf = 1  # spoon flag
+    cf = 0
     # cup flag
 
     rewards = dist_reward_scale * (dist_reward * sf + dist_reward_1 * cf) \
