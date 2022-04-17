@@ -58,7 +58,7 @@ params:
     games_to_track: 100   # game track if done
 
     # agent init
-    num_seed_steps: 20 # first few epochs, random play
+    num_seed_steps: 100 # first few epochs, random play
     # ? total steps: num_actors * num_steps_per_episode * num_seed_steps
     gamma: 0.99
     critic_tau: 0.005   # critic soft update tau
@@ -75,7 +75,7 @@ params:
     alpha_lr: 3e-4    # sac entropy tuning alpha
     target_entropy_coef: 0.5  # if none, default 0.5
 
-    score_to_win: 40000
+    score_to_win: 110000
     sigma: 0.9    # need tune, if fixed_sigma=True
 
     # CQL args

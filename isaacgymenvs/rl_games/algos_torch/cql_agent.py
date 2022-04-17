@@ -645,7 +645,7 @@ class CQLAgent(BaseAlgorithm):
                     return self.last_mean_rewards, self.epoch_num
                 update_time = 0
 
-                if self.epoch_num % 100 == 0:
+                if self.epoch_num % 40 == 0:
                     self.save(
                         os.path.join(self.checkpoint_dir, 'ep_' + str(self.epoch_num) + '_rew_' + str(mean_rewards)))
                     print('model backup save')
