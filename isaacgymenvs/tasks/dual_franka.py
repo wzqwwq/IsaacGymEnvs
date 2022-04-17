@@ -1338,11 +1338,15 @@ def compute_franka_reward(
                                      torch.where(franka_rfinger_pos[:, 1] < spoon_grasp_pos[:, 1],
                                                  (0.04 - lfinger_dist) + (0.04 - rfinger_dist), finger_dist_reward),
                                      finger_dist_reward)  # 2 together with the following lines
+
+    '''Important'''
     finger_dist_reward = torch.where(franka_lfinger_pos[:, 1] > spoon_grasp_pos[:, 1],
                                      torch.where(franka_rfinger_pos[:, 1] < spoon_grasp_pos[:, 1], torch.where(
                                          d <= 0.02, ((0.04 - lfinger_dist) + (0.04 - rfinger_dist)) * 100,
                                          finger_dist_reward), finger_dist_reward),
                                      finger_dist_reward)  # 3
+
+
     # finger_dist_reward = torch.zeros_like(rot_reward)
     # lfinger_dist = torch.abs(franka_lfinger_pos[:, 2] - (spoon_grasp_pos[:, 2] + 0.005))
     # rfinger_dist = torch.abs(franka_rfinger_pos[:, 2] - (spoon_grasp_pos[:, 2] - 0.005))
@@ -1358,6 +1362,12 @@ def compute_franka_reward(
                                                    (0.04 - lfinger_dist_1) + (0.04 - rfinger_dist_1),
                                                    finger_dist_reward_1),
                                        finger_dist_reward_1)
+    finger_dist_reward_1 = torch.where(franka_lfinger_pos_1[:, 2] > cup_grasp_pos[:, 2],
+                                     torch.where(franka_rfinger_pos_1[:, 2] < cup_grasp_pos[:, 2], torch.where(
+                                         d <= 0.02, ((0.04 - lfinger_dist_1) + (0.04 - rfinger_dist_1)) * 100,
+                                         finger_dist_reward_1), finger_dist_reward_1),
+                                     finger_dist_reward_1)  # 3
+
     # </editor-fold>
 
     # <editor-fold desc="5. fall penalty(table or ground)">
@@ -1405,7 +1415,7 @@ def compute_franka_reward(
 
     ## sum of rewards
     sf = 1  # spoon flag
-    cf = 0
+    cf = 1
     # cup flag
 
     rewards = dist_reward_scale * (dist_reward * sf + dist_reward_1 * cf) \
