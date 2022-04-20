@@ -78,3 +78,13 @@ python train.py test=True headless=False checkpoint='runs/DualFrankaCQL/nn/model
    ```commandline
    pyana3is train.py num_envs=1024 headless=true
    ```
+
+   ```commandline
+   pyana3is train.py num_envs=20 headless=false
+   ```
+
+   ```commandline
+   tensorboard --logdir='./summaries/
+   '```
+
+pyana3is train.py test=True headless=false checkpoint='runs/DualFrankaPPO_cup/nn/DualFrankaPPO_cup.pth' num_envs=10
