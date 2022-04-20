@@ -66,3 +66,15 @@ python train.py test=True headless=False checkpoint='runs/DualFrankaCQL/nn/model
 | `[`, `]`                | Drive franka position manually in `y` axis                   |
 | `LEFT_SHIFT`            | Switch driving between left/right Franka                     |
 
+## Commands
+   ```commandline
+   pyana3is train.py test=True headless=false checkpoint='runs/DualFrankaPPO_spoon3/nn/DualFrankaPPO_spoon3.pth' num_envs=3
+   ```
+
+   ```commandline
+   pyana3is train.py test=True headless=false checkpoint='runs/DualFrankaPPO_spoon2/nn/DualFrankaPPO_spoon2.pth' num_envs=10
+   ```
+
+   ```commandline
+   pyana3is train.py num_envs=1024 headless=true
+   ```
