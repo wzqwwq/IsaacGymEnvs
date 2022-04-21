@@ -1367,11 +1367,11 @@ def compute_franka_reward(
                                                    (0.04 - lfinger_dist_1) + (0.04 - rfinger_dist_1),
                                                    finger_dist_reward_1),
                                        finger_dist_reward_1)
-    # finger_dist_reward_1 = torch.where(franka_lfinger_pos_1[:, 2] > cup_grasp_pos[:, 2],
-    #                                    torch.where(franka_rfinger_pos_1[:, 2] < cup_grasp_pos[:, 2], torch.where(
-    #                                        d <= 0.02, ((0.04 - lfinger_dist_1) + (0.04 - rfinger_dist_1)) * 100,
-    #                                        finger_dist_reward_1), finger_dist_reward_1),
-    #                                    finger_dist_reward_1)  # 3
+    finger_dist_reward_1 = torch.where(franka_lfinger_pos_1[:, 2] > cup_grasp_pos[:, 2],
+                                       torch.where(franka_rfinger_pos_1[:, 2] < cup_grasp_pos[:, 2], torch.where(
+                                           d_1 <= 0.02, ((0.04 - lfinger_dist_1) + (0.04 - rfinger_dist_1)) * 100,
+                                           finger_dist_reward_1), finger_dist_reward_1),
+                                       finger_dist_reward_1)  # 3
 
     # </editor-fold>
 
@@ -1396,25 +1396,17 @@ def compute_franka_reward(
     init_cup_pos = torch.tensor([-0.3, 0.4425, -0.29])
     lift_reward = torch.zeros_like(rot_reward)
     lift_dist = spoon_positions[:, 1] - init_spoon_pos[1]
-    # lift_reward = torch.where(lift_dist > 0, (spoon_positions[:, 1] - init_spoon_pos[1]) * around_handle_reward + (
-    #         spoon_positions[:, 1] - init_spoon_pos[1]), lift_reward)
-    # lift_reward = lift_dist * around_handle_reward + lift_dist
-    # lift_reward = lift_dist * around_handle_reward # 2
-    # lift_reward = lift_dist * around_handle_reward + lift_dist + lift_dist * finger_dist_reward # 3
     lift_reward = torch.where(lift_dist < 0, lift_dist * around_handle_reward + lift_dist, lift_reward)
-    # lift_reward = torch.where(lift_dist > 0,
-    #                           (lift_dist * around_handle_reward + lift_dist + lift_reward * finger_dist_reward) * 100,
-    #                           lift_reward)  # 2
-    # lift_reward = torch.where(lift_dist > 0,
-    #                           (lift_dist * around_handle_reward + lift_reward * finger_dist_reward) * 100,
-    #                           lift_reward)  # 3
     lift_reward = torch.where(lift_dist > 0,
                               (lift_dist * around_handle_reward + lift_dist + lift_dist * finger_dist_reward * 10) * 5,
-                              lift_reward)  # 3
+                              lift_reward)
 
-    # print('around_handle_reward: {}'.format(around_handle_reward))
-    lift_reward_1 = (cup_positions[:, 1] - init_cup_pos[1]) * around_handle_reward_1 + (
-            cup_positions[:, 1] - init_cup_pos[1])
+    lift_reward_1 = torch.zeros_like(rot_reward_1)
+    lift_dist_1 = cup_positions[:, 1] - init_cup_pos[1]
+    lift_reward_1 = torch.where(lift_dist_1 < 0, lift_dist_1 * around_handle_reward_1 + lift_dist_1, lift_reward_1)
+    lift_reward_1 = torch.where(lift_dist_1 > 0, (
+                lift_dist_1 * around_handle_reward_1 + lift_dist_1 + lift_dist_1 * finger_dist_reward_1 * 10) * 5,
+                                lift_reward_1)  # 3
     # </editor-fold>
 
     ## sum of rewards
