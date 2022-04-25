@@ -173,7 +173,7 @@ class A2CBase(BaseAlgorithm):
         self.tau = self.config['tau']
 
         self.games_to_track = self.config.get('games_to_track', 100)
-        print(self.ppo_device)
+        print("PPO_device",self.ppo_device)
         self.game_rewards = torch_ext.AverageMeter(self.value_size, self.games_to_track).to(self.ppo_device)
         self.game_lengths = torch_ext.AverageMeter(1, self.games_to_track).to(self.ppo_device)
         self.obs = None

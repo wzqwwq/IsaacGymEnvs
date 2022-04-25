@@ -1,7 +1,7 @@
 params:
   seed: ${...seed}
   algo:
-    name: a2c_continuous
+    name: mappo
 
   model:
     name: continuous_a2c_logstd
@@ -34,7 +34,7 @@ params:
   load_path: ${...checkpoint} # path to the checkpoint to load
 
   config:
-    name: ${resolve_default:DualFrankaPPO_testsz0421,${....experiment}}
+    name: ${resolve_default:DualFrankaMAPPO,${....experiment}}
     full_experiment_name: ${.name}
     env_name: rlgpu
     ppo: True
