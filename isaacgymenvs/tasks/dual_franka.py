@@ -32,7 +32,7 @@ class DualFranka(VecTask):
         self.num_agents = self.cfg["env"]["numAgents"]
         self.debug_viz = self.cfg["env"]["enableDebugVis"]
         self.ResetFromReplay = self.cfg["env"]["ResetFromReplay"]
-
+        self.is_multi_agent=self.cfg['env']["IsMultiAgent"]
         self.up_axis = "y"
         self.up_axis_idx = 2
 
@@ -50,7 +50,12 @@ class DualFranka(VecTask):
         # num_acts = 18
         actors_per_env = 7
         self.cfg["env"]["numObservations"] = 74
-        self.cfg["env"]["numActions"] = 18
+        if self.is_multi_agent:
+            self.num_agents = 2
+            self.cfg["env"]["numActions"] = 9
+        else:
+            self.num_agents = 1
+            self.cfg["env"]["numActions"] = 18
         super().__init__(config=self.cfg, sim_device=sim_device, graphics_device_id=graphics_device_id,
                          headless=headless)
         # get gym GPU state tensors

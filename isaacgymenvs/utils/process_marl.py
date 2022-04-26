@@ -9,9 +9,9 @@
 def get_AgentIndex(config):
     agent_index = []
     # right hand
-    agent_index.append(eval(config["env"]["handAgentIndex"]))
+    agent_index.append(eval(config["env"]["AgentIndex"]))
     # left hand
-    agent_index.append(eval(config["env"]["handAgentIndex"]))
+    agent_index.append(eval(config["env"]["AgentIndex"]))
 
     return agent_index
     

@@ -188,6 +188,7 @@ class A2CBuilder(NetworkBuilder):
             self.critic_cnn = nn.Sequential()
             self.actor_mlp = nn.Sequential()
             self.critic_mlp = nn.Sequential()
+            print("self.actor_cnn",self.actor_cnn)
             
             if self.has_cnn:
                 input_shape = torch_ext.shape_whc_to_cwh(input_shape)

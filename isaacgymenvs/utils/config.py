@@ -63,7 +63,10 @@ def retrieve_cfg(args, use_rlg_config=False):
 
     #TODO: add config files of sac, td3
     # 这里的设计有点不合理 可以修正
+    print("args.logdir",args.logdir)
     if args.task == "ShadowHandOver":
+        return os.path.join(args.logdir, "shadow_hand_over/{}/{}".format(args.algo, args.algo)), "cfg/{}/config.yaml".format(args.algo) , "cfg/shadow_hand_over.yaml"
+    if args.task == "DualFranka":
         return os.path.join(args.logdir, "shadow_hand_over/{}/{}".format(args.algo, args.algo)), "cfg/{}/config.yaml".format(args.algo) , "cfg/shadow_hand_over.yaml"
     elif args.task == "ShadowHandCatchOverarm":
         return os.path.join(args.logdir, "shadow_hand_catch_overarm/{}/{}".format(args.algo, args.algo)), "cfg/{}/config.yaml".format(args.algo), "cfg/shadow_hand_catch_overarm.yaml"
@@ -260,8 +263,8 @@ def get_args(benchmark=False, use_rlg_config=False):
             "help": "Force display off at all times"},
         {"name": "--horovod", "action": "store_true", "default": False,
             "help": "Use horovod for multi-gpu training, have effect only with rl_games RL library"},
-        {"name": "--task", "type": str, "default": "Humanoid",
-            "help": "Can be BallBalance, Cartpole, CartpoleYUp, Ant, Humanoid, Anymal, FrankaCabinet, Quadcopter, ShadowHand, Ingenuity"},
+        {"name": "--task", "type": str, "default": "DualFranka",
+            "help": "Can be BallBalance, Cartpole, CartpoleYUp, Ant, Humanoid, Anymal, DualFranka,FrankaCabinet, Quadcopter, ShadowHand, Ingenuity"},
         {"name": "--task_type", "type": str,
             "default": "Python", "help": "Choose Python or C++"},
         {"name": "--rl_device", "type": str, "default": "cuda:0",
@@ -289,7 +292,7 @@ def get_args(benchmark=False, use_rlg_config=False):
             "help": "Apply physics domain randomization"},
         {"name": "--torch_deterministic", "action": "store_true", "default": False,
             "help": "Apply additional PyTorch settings for more deterministic behaviour"},
-        {"name": "--algo", "type": str, "default": "happo",
+        {"name": "--algo", "type": str, "default": "mappo",
             "help": "Choose an algorithm"},
         {"name": "--model_dir", "type": str, "default": "",
             "help": "Choose a model dir"}]

@@ -7,7 +7,7 @@ params:
     name: continuous_a2c_logstd
 
   network:
-    name: actor_critic
+    name: mappo_actor_critic
     separate: False
 
     space:

@@ -32,6 +32,8 @@ env:
   # openRewardScale: 7.5
   fingerDistRewardScale: 5.0
   actionPenaltyScale: 0.01
+  AgentIndex: "[[0, 1, 2, 3, 4, 5]]"
+  IsMultiAgent : False
 
   asset:
     assetRoot: "../../assets"
