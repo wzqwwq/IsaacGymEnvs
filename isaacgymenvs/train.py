@@ -122,7 +122,8 @@ def launch_rlg_hydra(cfg: DictConfig):
     def build_runner(algo_observer):
         if cfg.train.params.algo.name=="mappo":
             print("1")
-            cfg1, cfg_train, logdir = load_cfg(cfg)
+            args=get_args()
+            cfg1, cfg_train, logdir = load_cfg(args)
          #   sim_params = parse_sim_params(args, cfg1, cfg_train)
             set_seed(cfg_train.get("seed", -1), cfg_train.get("torch_deterministic", False))
             train()
