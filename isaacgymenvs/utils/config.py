@@ -67,7 +67,7 @@ def retrieve_cfg(args, use_rlg_config=False):
     if args.task == "ShadowHandOver":
         return os.path.join(args.logdir, "shadow_hand_over/{}/{}".format(args.algo, args.algo)), "cfg/{}/config.yaml".format(args.algo) , "cfg/shadow_hand_over.yaml"
     if args.task == "DualFranka":
-        return os.path.join(args.logdir, "shadow_hand_over/{}/{}".format(args.algo, args.algo)), "cfg/{}/config.yaml".format(args.algo) , "cfg/shadow_hand_over.yaml"
+        return os.path.join(args.logdir, "DualFranka/{}/{}".format(args.algo, args.algo)), "cfg/{}/config.yaml".format(args.algo) , "cfg/mappo/task/DualFranka.yaml"
     elif args.task == "ShadowHandCatchOverarm":
         return os.path.join(args.logdir, "shadow_hand_catch_overarm/{}/{}".format(args.algo, args.algo)), "cfg/{}/config.yaml".format(args.algo), "cfg/shadow_hand_catch_overarm.yaml"
     elif args.task == "ShadowHandCatchUnderarm":
@@ -241,7 +241,7 @@ def parse_sim_params(args, cfg, cfg_train):
     # if sim options are provided in cfg, parse them and update/override above:
     if "sim" in cfg:
         gymutil.parse_sim_config(cfg["sim"], sim_params)
-
+        print("1")
     # Override num_threads if passed on the command line
     if args.physics_engine == gymapi.SIM_PHYSX and args.num_threads > 0:
         sim_params.physx.num_threads = args.num_threads

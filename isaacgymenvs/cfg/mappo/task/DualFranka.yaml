@@ -47,12 +47,11 @@ env:
 sim:
   dt: 0.0166 # 1/60
   substeps: 1
-  up_axis:  "y"
   use_gpu_pipeline: ${eq:${...pipeline},"gpu"}
   gravity: [0.0, -9.81, 0.0]
   physx:
-    num_threads: ${....num_threads}
-    solver_type: ${....solver_type}
+    num_threads: 4
+    solver_type: 1
     use_gpu: ${contains:"cuda",${....sim_device}} # set to False to run on CPU
     num_position_iterations: 12
     num_velocity_iterations: 1
@@ -62,7 +61,6 @@ sim:
     max_depenetration_velocity: 1000.0
     default_buffer_size_multiplier: 5.0
     max_gpu_contact_pairs: 1048576 # 1024*1024
-    num_subscenes: ${....num_subscenes}
     contact_collection: 1 # 0: CC_NEVER (don't collect contact info), 1: CC_LAST_SUBSTEP (collect only contacts on last substep), 2: CC_ALL_SUBSTEPS (default - all contacts)
 
 task:

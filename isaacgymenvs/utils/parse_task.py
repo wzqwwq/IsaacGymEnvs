@@ -16,9 +16,9 @@
 # from tasks.shadow_hand_door_open_inward import ShadowHandDoorOpenInward
 # from tasks.shadow_hand_door_open_outward import ShadowHandDoorOpenOutward
 # from tasks.shadow_hand_bottle_cap import ShadowHandBottleCap
-#
+from tasks.dual_franka import DualFranka
 # from tasks.hand_base.vec_task import VecTaskCPU, VecTaskGPU, VecTaskPython, VecTaskPythonArm
-# from tasks.hand_base.multi_vec_task import MultiVecTaskPython, SingleVecTaskPythonArm
+from tasks.hand_base.multi_vec_task import MultiVecTaskPython, SingleVecTaskPythonArm
 
 
 from utils.config import warn_task_name
@@ -29,7 +29,7 @@ import json
 def parse_task(args, cfg, cfg_train, sim_params, agent_index):
 
     # create native task and pass custom config
-    device_id = args.device_id
+    device_id = args.graphics_device_id
     rl_device = args.rl_device
 
     cfg["seed"] = cfg_train.get("seed", -1)
@@ -63,6 +63,7 @@ def parse_task(args, cfg, cfg_train, sim_params, agent_index):
         print("Python")
 
         try:
+            print("sim_para", cfg)
             task = eval(args.task)(
                 cfg=cfg,
                 sim_params=sim_params,
@@ -83,6 +84,7 @@ def parse_task(args, cfg, cfg_train, sim_params, agent_index):
         print("MultiAgent")
 
         try:
+
             task = eval(args.task)(
                 cfg=cfg,
                 sim_params=sim_params,

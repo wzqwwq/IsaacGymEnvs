@@ -68,7 +68,7 @@ OmegaConf.register_new_resolver('resolve_default', lambda default, arg: default 
 @hydra.main(config_name="config", config_path="./cfg")
 def launch_rlg_hydra(cfg: DictConfig):
     #todo : change the load way
-    task_cfg=OmegaConf.load("./cfg/task/DualFranka.yaml")
+    task_cfg=OmegaConf.load("./cfg/mappo/task/DualFranka.yaml")
     train_cfg = OmegaConf.load("./cfg/train/DualFrankaMAPPO.yaml")
     # ensure checkpoints can be specified as relative paths
     if cfg.checkpoint:
@@ -107,25 +107,25 @@ def launch_rlg_hydra(cfg: DictConfig):
 
     def train():
         print("Algorithm: ", cfg.train.params.algo.name)
-        agent_index = get_AgentIndex(task_cfg)
             # maddpg exists a bug now
-        task, env = parse_task(cfg, task_cfg, train_cfg, sim_params, agent_index)
+        set_np_formatting()
+        args=get_args()
+        args.task_type="MultiAgent"
 
+        cfg1, cfg_train, logdir = load_cfg(args)
+        sim_params = parse_sim_params(args, cfg1, cfg_train)
+        set_seed(cfg_train.get("seed", -1), cfg_train.get("torch_deterministic", False))
+        agent_index = get_AgentIndex(task_cfg)
+        task, env = parse_task(args, cfg1, cfg_train, sim_params, agent_index)
         runner = process_MultiAgentRL(args, env=env, config=cfg_train, model_dir=args.model_dir)
-
         # test
-        if args.model_dir != "":
+        if cfg.model_dir != "":
             runner.eval(1000)
         else:
             runner.run()
     # register new AMP network builder and agent
     def build_runner(algo_observer):
         if cfg.train.params.algo.name=="mappo":
-            print("1")
-            args=get_args()
-            cfg1, cfg_train, logdir = load_cfg(args)
-         #   sim_params = parse_sim_params(args, cfg1, cfg_train)
-            set_seed(cfg_train.get("seed", -1), cfg_train.get("torch_deterministic", False))
             train()
            # runner = Runner(algo_observer)
         else:
@@ -170,3 +170,4 @@ def launch_rlg_hydra(cfg: DictConfig):
 
 if __name__ == "__main__":
     launch_rlg_hydra()
+

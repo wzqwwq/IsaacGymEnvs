@@ -34,7 +34,7 @@ class DualFranka(VecTask):
         self.ResetFromReplay = self.cfg["env"]["ResetFromReplay"]
         self.is_multi_agent=self.cfg['env']["IsMultiAgent"]
         self.up_axis = "y"
-        self.up_axis_idx = 2
+        self.up_axis_idx = 1
 
         self.distX_offset = 0.04
         self.dt = 1 / 60.

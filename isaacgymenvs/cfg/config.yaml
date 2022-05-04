@@ -1,11 +1,13 @@
 
 # Task name - used to pick the class to load
 task_name: ${task.name}
+
 # experiment name. defaults to name of training config
 experiment: ''
 
 # if set to positive integer, overrides the default number of environments
 num_envs: ''
+
 
 # seed - set to -1 to choose random seed
 seed: 42
@@ -44,6 +46,8 @@ headless: False
 
 # dataset loading path
 dataset: ''
+
+task_type: MultiAgent
 
 # set default task and default training config based on task
 defaults:
