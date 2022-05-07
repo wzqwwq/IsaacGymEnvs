@@ -34,10 +34,12 @@ params:
   load_path: ${...checkpoint} # path to the checkpoint to load
 
   config:
-    name: ${resolve_default:DualFrankaPPO_stage2,${....experiment}}
+    name: ${resolve_default:DualFrankaPPO,${....experiment}}
     full_experiment_name: ${.name}
     env_name: rlgpu
     ppo: True
+    add_cql: True
+    cql_version: 1
     mixed_precision: False
     normalize_input: True
     normalize_value: True
@@ -50,7 +52,7 @@ params:
     learning_rate: 5e-4
     lr_schedule: adaptive
     kl_threshold: 0.008
-    score_to_win: 1000000
+    score_to_win: 10000000
     max_epochs: ${resolve_default:1500,${....max_iterations}}
     save_best_after: 20
     save_frequency: 10
@@ -60,8 +62,8 @@ params:
     truncate_grads: True
     e_clip: 0.2
     horizon_length: 1000
-    minibatch_size: 8192
-    #minibatch_size: 10
+    minibatch_size: 2048
+#    minibatch_size: 10
     mini_epochs: 8
     critic_coef: 4
     clip_value: True

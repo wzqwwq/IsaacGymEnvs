@@ -9,6 +9,10 @@ from isaacgym.torch_utils import *
 from tasks.base.vec_task import VecTask
 from typing import Dict, List, Tuple, Union
 
+shelf_as_box = False
+spoon_as_box = False
+turn_spoon = False
+
 
 class DualFranka(VecTask):
     # define the config
@@ -179,9 +183,28 @@ class DualFranka(VecTask):
         box_dims = gymapi.Vec3(0.1, 0.04, 0.1)
         other_asset_options.fix_base_link = True
         shelf_asset = self.gym.load_asset(self.sim, asset_root, shelf_asset_file, other_asset_options)
+        if shelf_as_box:
+            shelf_box_dims = gymapi.Vec3(0.2, 0.1, 0.2)
+            shelf_asset = self.gym.create_box(self.sim, shelf_box_dims.x, shelf_box_dims.y, shelf_box_dims.z,
+                                              other_asset_options)
         box_asset = self.gym.create_box(self.sim, box_dims.x, box_dims.y, box_dims.z, other_asset_options)
         other_asset_options.fix_base_link = False
         spoon_asset = self.gym.load_asset(self.sim, asset_root, spoon_asset_file, other_asset_options)
+        if spoon_as_box:
+            spoon_box_dims = gymapi.Vec3(0.03, 0.03, 0.03)
+            spoon_asset = self.gym.create_box(self.sim, spoon_box_dims.x, spoon_box_dims.y, spoon_box_dims.z,
+                                              other_asset_options)
+
+        # other_asset_options = gymapi.AssetOptions()
+        # cup_asset = self.gym.load_asset(self.sim, asset_root, spoon_asset_file, other_asset_options)
+        #
+        # # load shelf and spoon
+        # box_dims = gymapi.Vec3(0.1, 0.04, 0.1)
+        # other_asset_options.fix_base_link = True
+        # shelf_asset = self.gym.create_box(self.sim, box_dims.x, box_dims.y, box_dims.z, other_asset_options)
+        # box_asset = self.gym.load_asset(self.sim, asset_root, shelf_asset_file, other_asset_options)
+        # other_asset_options.fix_base_link = False
+        # spoon_asset = self.gym.load_asset(self.sim, asset_root, cup_asset_file, other_asset_options)
 
         # box_opts = gymapi.AssetOptions()
         # box_opts.density = 400
@@ -258,6 +281,8 @@ class DualFranka(VecTask):
 
         pose = gymapi.Transform()
         pose.p.x = -1
+        if turn_spoon:
+            pose.p.x = -1.2
         pose.p.y = 0.0
         pose.p.z = 0.5
         pose.r = gymapi.Quat(-0.707107, 0.0, 0.0, 0.707107)
@@ -283,14 +308,49 @@ class DualFranka(VecTask):
         spoon_pose = gymapi.Transform()
         spoon_pose.p.x = table_pose.p.x - 0.29
         spoon_pose.p.y = 0.5
+        if spoon_as_box:
+            spoon_pose.p.y = 0.5 + 0.5 * spoon_box_dims.y
         spoon_pose.p.z = 0.29
+        if turn_spoon:
+            spoon_pose.p.x = table_pose.p.x - 0.45
+            spoon_pose.p.z = 0.39
         spoon_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
+        if turn_spoon:
+            spoon_pose.r = gymapi.Quat(0.0, -0.707, 0.0, 0.707)
 
         shelf_pose = gymapi.Transform()
         shelf_pose.p.x = table_pose.p.x - 0.3
         shelf_pose.p.y = 0.4
+        if turn_spoon:
+            shelf_pose.p.x = table_pose.p.x - 0.45
+        if shelf_as_box:
+            shelf_pose.p.y = 0.4 + 0.5 * shelf_box_dims.y
         shelf_pose.p.z = 0.29
         shelf_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
+
+        # box_pose = gymapi.Transform()
+        # box_pose.p.x = table_pose.p.x - 0.3
+        # box_pose.p.y = 0.4
+        # box_pose.p.z = -0.29
+        # box_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
+        #
+        # cup_pose = gymapi.Transform()
+        # cup_pose.p.x = table_pose.p.x - 0.3
+        # cup_pose.p.y = box_pose.p.y + 0.5 * box_dims.y
+        # cup_pose.p.z = -0.29
+        # cup_pose.r = gymapi.Quat(0.0, -0.287, 0.0, 0.95793058)
+        #
+        # spoon_pose = gymapi.Transform()
+        # spoon_pose.p.x = table_pose.p.x - 0.29
+        # spoon_pose.p.y = 0.5
+        # spoon_pose.p.z = 0.29
+        # spoon_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
+        #
+        # shelf_pose = gymapi.Transform()
+        # shelf_pose.p.x = table_pose.p.x - 0.3
+        # shelf_pose.p.y = table_pose.p.y + 0.5 * table_dims.y + 0.5 * box_dims.y
+        # shelf_pose.p.z = 0.29
+        # shelf_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
 
         # compute aggregate size
         num_franka_bodies = self.gym.get_asset_rigid_body_count(franka_asset)
@@ -361,6 +421,10 @@ class DualFranka(VecTask):
         self.cup_handle = self.gym.find_actor_rigid_body_handle(env_ptr, cup_actor, "base_link")
         self.spoon_handle = self.gym.find_actor_rigid_body_handle(env_ptr, spoon_actor, "base_link")
         self.shelf_handle = self.gym.find_actor_rigid_body_handle(env_ptr, shelf_actor, "base_link")
+        if spoon_as_box:
+            self.spoon_handle = self.gym.find_actor_rigid_body_handle(env_ptr, spoon_actor, "box")
+        if shelf_as_box:
+            self.shelf_handle = self.gym.find_actor_rigid_body_handle(env_ptr, shelf_actor, "box")
 
         self.init_data()
         # self.gym.get_sim_rigid_body_states(self.sim,gymapi.STATE_ALL)
@@ -434,8 +498,11 @@ class DualFranka(VecTask):
                                             device=self.device).repeat((self.num_envs, 1))
 
         spoon_local_grasp_pose = gymapi.Transform()
-        spoon_local_grasp_pose.p.x = 0
+        spoon_local_grasp_pose.p.x = 0.03
         spoon_local_grasp_pose.p.y = 0.005
+        if spoon_as_box:
+            spoon_local_grasp_pose.p.x = 0.03
+            spoon_local_grasp_pose.p.y = 0.0
         spoon_local_grasp_pose.p.z = 0
         spoon_local_grasp_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
 
@@ -451,12 +518,23 @@ class DualFranka(VecTask):
         self.gripper_forward_axis = to_torch([0, 0, -1], device=self.device).repeat((self.num_envs, 1))
         self.cup_inward_axis = to_torch([1, 0, 0], device=self.device).repeat((self.num_envs, 1))
         self.gripper_up_axis = to_torch([1, 0, 0], device=self.device).repeat((self.num_envs, 1))
+        if turn_spoon:
+            self.gripper_forward_axis = to_torch([0, 0, 1], device=self.device).repeat((self.num_envs, 1))  # +z
+            self.gripper_up_axis = to_torch([0, 1, 0], device=self.device).repeat((self.num_envs, 1))  # +y
+
+        # print('self.gripper_forward_axis: {}, self.gripper_up_axis: {}'.format(self.gripper_forward_axis,
+        #                                                                         self.gripper_up_axis))
         self.cup_up_axis = to_torch([0, 1, 0], device=self.device).repeat((self.num_envs, 1))
 
         self.gripper_forward_axis_1 = to_torch([0, 0, 1], device=self.device).repeat((self.num_envs, 1))
         self.spoon_inward_axis = to_torch([1, 0, 0], device=self.device).repeat((self.num_envs, 1))
         self.gripper_up_axis_1 = to_torch([1, 0, 0], device=self.device).repeat((self.num_envs, 1))
         self.spoon_up_axis = to_torch([0, 1, 0], device=self.device).repeat((self.num_envs, 1))
+        if turn_spoon:
+            self.spoon_inward_axis = to_torch([0, 0, -1], device=self.device).repeat((self.num_envs, 1))  # -z
+            self.spoon_up_axis = to_torch([0, 1, 0], device=self.device).repeat((self.num_envs, 1))  # +y
+        # print('self.spoon_inward_axis: {}, self.gripper_up_axis: {}'.format(self.spoon_inward_axis,
+        #                                                                         self.spoon_up_axis))
         self.table_rot= to_torch([0, 0, 0, 1], device=self.device).repeat((self.num_envs, 1))
 
         # params for calculation
@@ -488,26 +566,6 @@ class DualFranka(VecTask):
         ##########################################################################3
         # important
 
-    def compute_reward(self):
-        self.rew_buf[:], self.reset_buf[:], self.reward_dict,self.gripped,self.gripped_1= compute_franka_reward(
-            self.reset_buf, self.progress_buf, self.actions,
-            self.franka_grasp_pos, self.cup_grasp_pos, self.franka_grasp_rot,
-            self.franka_grasp_pos_1, self.spoon_grasp_pos, self.franka_grasp_rot_1,
-            self.cup_grasp_rot, self.spoon_grasp_rot,self.table_rot, self.cup_positions, self.spoon_positions, self.cup_orientations,
-            self.cup_inward_axis, self.cup_up_axis, self.franka_lfinger_pos, self.franka_rfinger_pos,
-            self.spoon_inward_axis, self.spoon_up_axis, self.franka_lfinger_pos_1, self.franka_rfinger_pos_1,
-            self.gripper_forward_axis, self.gripper_up_axis,
-            self.gripper_forward_axis_1, self.gripper_up_axis_1, self.contact_forces,
-            self.num_envs, self.dist_reward_scale, self.rot_reward_scale, self.around_handle_reward_scale,
-            self.lift_reward_scale, self.finger_dist_reward_scale, self.action_penalty_scale, self.distX_offset,
-            self.max_episode_length)
-        # self.reset_num1 = torch.cat((self.contact_forces[:, 0:5, :], self.contact_forces[:, 6:7, :]), 1)
-        # self.reset_num2 = torch.cat((self.contact_forces[:, 10:15, :], self.contact_forces[:, 16:17, :]), 1)
-        # self.reset_num = torch.cat((self.reset_num1, self.reset_num2), dim=-1)
-        # self.reset_numm = torch.cat((self.contact_forces[:, 0:7, :], self.contact_forces[:, 10:17, :]), 1)
-
-        # important
-
     ###########################################################
     def compute_observations(self):
         self.gym.refresh_actor_root_state_tensor(self.sim)
@@ -536,15 +594,23 @@ class DualFranka(VecTask):
                                      spoon_rot, spoon_pos, self.spoon_local_grasp_rot, self.spoon_local_grasp_pos
                                      )
 
-        self.franka_lfinger_pos = self.rigid_body_states[:, self.lfinger_handle][:, 0:3]
-        self.franka_rfinger_pos = self.rigid_body_states[:, self.rfinger_handle][:, 0:3]
+        self.franka_lfinger_pos = self.rigid_body_states[:, self.lfinger_handle][:, 0:3].clone()
+        self.franka_rfinger_pos = self.rigid_body_states[:, self.rfinger_handle][:, 0:3].clone()
         self.franka_lfinger_rot = self.rigid_body_states[:, self.lfinger_handle][:, 3:7]
         self.franka_rfinger_rot = self.rigid_body_states[:, self.rfinger_handle][:, 3:7]
 
-        self.franka_lfinger_pos_1 = self.rigid_body_states[:, self.lfinger_handle_1][:, 0:3]
-        self.franka_rfinger_pos_1 = self.rigid_body_states[:, self.rfinger_handle_1][:, 0:3]
+        v = torch.zeros_like(self.franka_lfinger_pos)
+        v[:, 2] = 0.04
+        self.franka_lfinger_pos += quat_rotate(self.franka_grasp_rot, v)
+        self.franka_rfinger_pos += quat_rotate(self.franka_grasp_rot, v)
+
+        self.franka_lfinger_pos_1 = self.rigid_body_states[:, self.lfinger_handle_1][:, 0:3].clone()
+        self.franka_rfinger_pos_1 = self.rigid_body_states[:, self.rfinger_handle_1][:, 0:3].clone()
         self.franka_lfinger_rot_1 = self.rigid_body_states[:, self.lfinger_handle_1][:, 3:7]
         self.franka_rfinger_rot_1 = self.rigid_body_states[:, self.rfinger_handle_1][:, 3:7]
+
+        self.franka_lfinger_pos_1 += quat_rotate(self.franka_grasp_rot_1, v)
+        self.franka_rfinger_pos_1 += quat_rotate(self.franka_grasp_rot_1, v)
 
         dof_pos_scaled = (2.0 * (self.franka_dof_pos - self.franka_dof_lower_limits)
                           / (self.franka_dof_upper_limits - self.franka_dof_lower_limits) - 1.0)
@@ -559,6 +625,25 @@ class DualFranka(VecTask):
                                   self.franka_dof_pos, self.franka_dof_pos_1), dim=-1)
 
         return self.obs_buf
+
+    def compute_reward(self):
+        self.rew_buf[:], self.reset_buf[:], self.reward_dict, self.gripped, self.gripped_1 = compute_franka_reward(
+            self.reset_buf, self.progress_buf, self.actions,
+            self.franka_grasp_pos, self.cup_grasp_pos, self.franka_grasp_rot,
+            self.franka_grasp_pos_1, self.spoon_grasp_pos, self.franka_grasp_rot_1,
+            self.cup_grasp_rot, self.spoon_grasp_rot, self.table_rot, self.cup_positions, self.spoon_positions,
+            self.cup_orientations, self.spoon_orientations, self.spoon_linvels, self.spoon_angvels,
+            self.cup_inward_axis, self.cup_up_axis, self.franka_lfinger_pos, self.franka_rfinger_pos,
+            self.spoon_inward_axis, self.spoon_up_axis, self.franka_lfinger_pos_1, self.franka_rfinger_pos_1,
+            self.gripper_forward_axis, self.gripper_up_axis,
+            self.gripper_forward_axis_1, self.gripper_up_axis_1, self.contact_forces,
+            self.num_envs, self.dist_reward_scale, self.rot_reward_scale, self.around_handle_reward_scale,
+            self.lift_reward_scale, self.finger_dist_reward_scale, self.action_penalty_scale, self.distX_offset,
+            self.max_episode_length)
+        # self.reset_num1 = torch.cat((self.contact_forces[:, 0:5, :], self.contact_forces[:, 6:7, :]), 1)
+        # self.reset_num2 = torch.cat((self.contact_forces[:, 10:15, :], self.contact_forces[:, 16:17, :]), 1)
+        # self.reset_num = torch.cat((self.reset_num1, self.reset_num2), dim=-1)
+        # self.reset_numm = torch.cat((self.contact_forces[:, 0:7, :], self.contact_forces[:, 10:17, :]), 1)
 
     def reset_idx_replay_buffer(self, env_ids):
         import h5py
@@ -652,6 +737,7 @@ class DualFranka(VecTask):
         self.franka_dof_pos[env_ids, :] = pos
         self.franka_dof_vel[env_ids, :] = torch.zeros_like(self.franka_dof_vel[env_ids])
         self.franka_dof_targets[env_ids, :self.num_franka_dofs] = pos
+        
         # reset franka1
         pos_1 = tensor_clamp(
             self.franka_default_dof_pos_1.unsqueeze(0) + 0.1 * (
@@ -674,13 +760,43 @@ class DualFranka(VecTask):
         # reset spoon
         self.spoon_positions[env_ids, 0] = -0.29
         self.spoon_positions[env_ids, 1] = 0.5
+        if spoon_as_box:
+            self.spoon_positions[env_ids, 1] = 0.5 + 0.015
         self.spoon_positions[env_ids, 2] = 0.29
+        if turn_spoon:
+            self.spoon_positions[env_ids, 0] = -0.53
+            self.spoon_positions[env_ids, 2] = 0.39
         self.spoon_orientations[env_ids, 0] = 0.0
         self.spoon_orientations[env_ids, 1] = 0.0
         self.spoon_orientations[env_ids, 2] = 0.0
         self.spoon_orientations[env_ids, 3] = 1.0
+        if turn_spoon:
+            self.spoon_orientations[env_ids, 0] = 0.0
+            self.spoon_orientations[env_ids, 1] = -0.707
+            self.spoon_orientations[env_ids, 2] = 0.0
+            self.spoon_orientations[env_ids, 3] = 0.707
         self.spoon_angvels[env_ids] = 0.0
         self.spoon_linvels[env_ids] = 0.0
+
+        # # reset cup
+        # self.cup_positions[env_ids, 0] = -0.29
+        # self.cup_positions[env_ids, 1] = 0.5
+        # self.cup_positions[env_ids, 2] = -0.29
+        # self.cup_orientations[env_ids, 0:3] = 0.0
+        # self.cup_orientations[env_ids, 1] = -0.0
+        # self.cup_orientations[env_ids, 3] = 1.0
+        # self.cup_linvels[env_ids] = 0.0
+        # self.cup_angvels[env_ids] = 0.0
+        #
+        # # reset spoon
+        # self.spoon_positions[env_ids, 0] = -0.3
+        # self.spoon_positions[env_ids, 1] = 0.44
+        # self.spoon_positions[env_ids, 2] = 0.29
+        # self.spoon_orientations[env_ids, 0:3] = 0.0
+        # self.spoon_orientations[env_ids, 1] = 0.0
+        # self.spoon_orientations[env_ids, 3] = 1.0
+        # self.spoon_angvels[env_ids] = 0.0
+        # self.spoon_linvels[env_ids] = 0.0
 
         # reset shelf
         # self.shelf_positions[env_ids, 0] = -0.3
@@ -833,6 +949,7 @@ class DualFranka(VecTask):
         self.franka_dof_targets[env_ids, self.num_franka_dofs:2 * self.num_franka_dofs] = pos_1
 
         # reset cup
+        # reset cup
         self.cup_positions[env_ids, 0] = -0.3
         self.cup_positions[env_ids, 1] = 0.443
         self.cup_positions[env_ids, 2] = -0.29
@@ -975,7 +1092,7 @@ class DualFranka(VecTask):
         self.compute_reward()
 
         # debug viz, show axis
-        if self.viewer and self.debug_viz:
+        if self.debug_viz:
             self.gym.clear_lines(self.viewer)
             self.gym.refresh_rigid_body_state_tensor(self.sim)
 
@@ -1097,6 +1214,8 @@ class DualFranka(VecTask):
                 self.viewer, gymapi.KEY_ESCAPE, "QUIT")
             self.gym.subscribe_viewer_keyboard_event(
                 self.viewer, gymapi.KEY_V, "toggle_viewer_sync")
+            self.gym.subscribe_viewer_keyboard_event(
+                self.viewer, gymapi.KEY_P, "myprint")
 
             # Point camera at middle env
             num_per_row = int(math.sqrt(self.num_envs))
@@ -1115,7 +1234,8 @@ class DualFranka(VecTask):
 def compute_franka_reward(
         reset_buf, progress_buf, actions, franka_grasp_pos, cup_grasp_pos, franka_grasp_rot, franka_grasp_pos_1,
         spoon_grasp_pos, franka_grasp_rot_1, cup_grasp_rot, spoon_grasp_rot,table_rot,
-        cup_positions, spoon_positions, cup_orientations,
+        cup_positions, spoon_positions, cup_orientations, spoon_orientations,
+        spoon_linvels, spoon_angvels,
         cup_inward_axis, cup_up_axis, franka_lfinger_pos, franka_rfinger_pos,
         spoon_inward_axis, spoon_up_axis, franka_lfinger_pos_1, franka_rfinger_pos_1,
         gripper_forward_axis, gripper_up_axis,
@@ -1128,14 +1248,8 @@ def compute_franka_reward(
     Tuple[Tensor, Tensor, Dict[str, Union[Dict[str, Tuple[Tensor, float]],
                                            Dict[str, Tensor], Dict[str, Union[Tensor, Tuple[Tensor, float]]]]]]:
     """
-
-    # globally convert all finger pos
-    v = torch.zeros_like(franka_lfinger_pos)
-    v[:, 2] = 0.04
-    franka_lfinger_pos += quat_rotate(franka_grasp_rot, v)
-    franka_rfinger_pos += quat_rotate(franka_grasp_rot, v)
-    franka_lfinger_pos_1 += quat_rotate(franka_grasp_rot_1, v)
-    franka_rfinger_pos_1 += quat_rotate(franka_grasp_rot_1, v)
+    tensor_device = franka_grasp_pos.device
+    # turn_spoon = True
 
     # print('spoon_grasp_pos: {}'.format(spoon_grasp_pos[0]))
     # print('cup_grasp_pos: {}'.format(cup_grasp_pos[0]))
@@ -1148,26 +1262,23 @@ def compute_franka_reward(
 
     # <editor-fold desc="1. distance reward - grasp and object">
     d = torch.norm(franka_grasp_pos - spoon_grasp_pos, p=2, dim=-1)
-
-
-   # d_stage2=torch.norm(franka_grasp_pos[:,0]-spoon_grasp_pos[:,0])
-    # dist_reward = 2.0 / (1.0 + d ** 2)
     dist_reward = 1.0 / (1.0 + d ** 2)
     dist_reward *= dist_reward
     dist_reward = torch.where(d <= 0.06, dist_reward * 2, dist_reward)
-    dist_reward = torch.where(d <= 0.02, dist_reward * 2, dist_reward)
+    dist_reward = torch.where(d <= 0.02, dist_reward * 2, dist_reward)  # TODO: test
 
     d_1 = torch.norm(franka_grasp_pos_1 - cup_grasp_pos, p=2, dim=-1)
     dist_reward_1 = 1.0 / (1.0 + d_1 ** 2)
     dist_reward_1 *= dist_reward_1
     dist_reward_1 = torch.where(d_1 <= 0.06, dist_reward_1 * 2, dist_reward_1)
     # </editor-fold>
+
     # <editor-fold desc="2. rotation reward">
     # define axis to make sure the alignment
     axis1 = tf_vector(franka_grasp_rot, gripper_forward_axis)  # franka
     axis2 = tf_vector(spoon_grasp_rot, spoon_up_axis)  # [0,1,0]
     axis3 = tf_vector(franka_grasp_rot, gripper_up_axis)
-    axis4 = tf_vector(spoon_grasp_rot, spoon_inward_axis)  # [0,0,1]
+    axis4 = tf_vector(spoon_grasp_rot, spoon_inward_axis)  # [1,0,0]
 
     axis1_1 = tf_vector(franka_grasp_rot_1, gripper_forward_axis_1)  # franka1
     axis2_1 = tf_vector(cup_grasp_rot, cup_inward_axis)
@@ -1182,6 +1293,13 @@ def compute_franka_reward(
         -1)  # franka-z-minus with spoon-y
     dot2 = torch.bmm(axis3.view(num_envs, 1, 3), axis4.view(num_envs, 3, 1)).squeeze(-1).squeeze(
         -1)  # franka-x with spoon-x
+
+    '''Box and turn'''
+    # dot1 = torch.bmm(axis1.view(num_envs, 1, 3), axis4.view(num_envs, 3, 1)).squeeze(-1).squeeze(
+    #     -1)  # franka-z with spoon-z-minus
+    # dot2 = torch.bmm(axis3.view(num_envs, 1, 3), axis2.view(num_envs, 3, 1)).squeeze(-1).squeeze(
+    #     -1)  # franka-y with spoon-y
+
     dot1_1 = torch.bmm(axis1_1.view(num_envs, 1, 3), axis2_1.view(num_envs, 3, 1)).squeeze(-1).squeeze(
         -1)  # franka-z with cup-x
     dot2_1 = torch.bmm(axis3_1.view(num_envs, 1, 3), axis4_1.view(num_envs, 3, 1)).squeeze(-1).squeeze(
@@ -1194,30 +1312,66 @@ def compute_franka_reward(
 
     # <editor-fold desc="3. around reward">
     # bonus if right/L finger is at the object R/L side
+    # around_handle_reward = torch.zeros_like(rot_reward)
+    # around_handle_reward = torch.where(quat_rotate_inverse(spoon_grasp_rot, franka_lfinger_pos)[:, 2] \
+    #                                    > quat_rotate_inverse(spoon_grasp_rot, spoon_grasp_pos)[:, 2],
+    #                                    torch.where(quat_rotate_inverse(spoon_grasp_rot, franka_rfinger_pos)[:, 2] \
+    #                                                < quat_rotate_inverse(spoon_grasp_rot, spoon_grasp_pos)[:, 2],
+    #                                                around_handle_reward + 0.5, around_handle_reward),
+    #                                    around_handle_reward)
+    # around_handle_reward_1 = torch.zeros_like(rot_reward_1)
+    # around_handle_reward_1 = torch.where(quat_rotate_inverse(cup_grasp_rot, franka_lfinger_pos_1)[:, 2] \
+    #                                      > quat_rotate_inverse(cup_grasp_rot, cup_grasp_pos)[:, 2],
+    #                                      torch.where(quat_rotate_inverse(cup_grasp_rot, franka_rfinger_pos_1)[:, 2] \
+    #                                                  < quat_rotate_inverse(cup_grasp_rot, cup_grasp_pos)[:, 2],
+    #                                                  around_handle_reward_1 + 0.5, around_handle_reward_1),
+    #                                      around_handle_reward_1)
+
+    '''Box and turn'''
+    # around_handle_reward = torch.zeros_like(rot_reward)
+    # around_handle_reward = torch.where(franka_lfinger_pos[:, 1] > spoon_grasp_pos[:, 1],
+    #                                    torch.where(franka_rfinger_pos[:, 1] < spoon_grasp_pos[:, 1],
+    #                                                around_handle_reward + 0.5, around_handle_reward),
+    #                                    around_handle_reward)
+
+    '''Continous'''
+    # around_handle_reward = torch.zeros_like(rot_reward)
+    # around_handle_reward = torch.where(franka_lfinger_pos[:, 2] > spoon_grasp_pos[:, 2],
+    #                                    torch.where(franka_rfinger_pos[:, 2] < spoon_grasp_pos[:, 2],
+    #                                                around_handle_reward + 0.5, around_handle_reward),
+    #                                    around_handle_reward)
+    #
+    # around_handle_reward_1 = torch.zeros_like(rot_reward_1)
+    # around_handle_reward_1 = torch.where(franka_lfinger_pos_1[:, 2] > cup_grasp_pos[:, 2],
+    #                                      torch.where(franka_rfinger_pos_1[:, 2] < cup_grasp_pos[:, 2],
+    #                                                  around_handle_reward_1 + 0.5, around_handle_reward_1),
+    #                                      around_handle_reward_1)
+
+    '''Discrete'''
     spoon_size = [0.1, 0.01, 0.01]
     around_handle_reward = torch.zeros_like(rot_reward)
     around_handle_reward = torch.where(quat_rotate_inverse(spoon_grasp_rot, franka_lfinger_pos)[:, 2] \
                                        > quat_rotate_inverse(spoon_grasp_rot, spoon_grasp_pos)[:, 2] - (
-                                                   0.5 * spoon_size[2] + 0.002),
+                                               0.5 * spoon_size[2] + 0.002),
                                        torch.where(quat_rotate_inverse(spoon_grasp_rot, franka_rfinger_pos)[:, 2] \
                                                    < quat_rotate_inverse(spoon_grasp_rot, spoon_grasp_pos)[:, 2] + (
-                                                               0.5 * spoon_size[2] + 0.002),
+                                                           0.5 * spoon_size[2] + 0.002),
                                                    around_handle_reward + 0.5, around_handle_reward),
                                        around_handle_reward)
     around_handle_reward = torch.where(quat_rotate_inverse(spoon_grasp_rot, franka_lfinger_pos)[:, 0] \
                                        > quat_rotate_inverse(spoon_grasp_rot, spoon_grasp_pos)[:, 0] - (
-                                                   0.5 * spoon_size[0] + 0.002),
+                                               0.5 * spoon_size[0] + 0.002),
                                        torch.where(quat_rotate_inverse(spoon_grasp_rot, franka_rfinger_pos)[:, 0] \
                                                    < quat_rotate_inverse(spoon_grasp_rot, spoon_grasp_pos)[:, 0] + (
-                                                               0.5 * spoon_size[0] + 0.002),
+                                                           0.5 * spoon_size[0] + 0.002),
                                                    around_handle_reward + 0.5, around_handle_reward),
                                        around_handle_reward)
     around_handle_reward = torch.where(quat_rotate_inverse(spoon_grasp_rot, franka_lfinger_pos)[:, 1] \
                                        > quat_rotate_inverse(spoon_grasp_rot, spoon_grasp_pos)[:, 1] - (
-                                                   0.5 * spoon_size[1] + 0.002),
+                                               0.5 * spoon_size[1] + 0.002),
                                        torch.where(quat_rotate_inverse(spoon_grasp_rot, franka_rfinger_pos)[:, 1] \
                                                    < quat_rotate_inverse(spoon_grasp_rot, spoon_grasp_pos)[:, 1] + (
-                                                               0.5 * spoon_size[1] + 0.002),
+                                                           0.5 * spoon_size[1] + 0.002),
                                                    around_handle_reward + 0.5, around_handle_reward),
                                        around_handle_reward)
     gripped = (around_handle_reward == 1.5)
@@ -1225,10 +1379,10 @@ def compute_franka_reward(
     around_handle_reward_1 = torch.zeros_like(rot_reward_1)
     around_handle_reward_1 = torch.where(quat_rotate_inverse(cup_grasp_rot, franka_lfinger_pos_1)[:, 2] \
                                          > quat_rotate_inverse(cup_grasp_rot, cup_grasp_pos)[:, 2] - (
-                                                     0.5 * cup_size[2] + 0.002),
+                                                 0.5 * cup_size[2] + 0.002),
                                          torch.where(quat_rotate_inverse(cup_grasp_rot, franka_rfinger_pos_1)[:, 2] \
                                                      < quat_rotate_inverse(cup_grasp_rot, cup_grasp_pos)[:, 2] + (
-                                                                 0.5 * cup_size[2] + 0.002),
+                                                             0.5 * cup_size[2] + 0.002),
                                                      around_handle_reward_1 + 0.5, around_handle_reward_1),
                                          around_handle_reward_1)
     around_handle_reward_1 = torch.where(quat_rotate_inverse(cup_grasp_rot, franka_lfinger_pos_1)[:, 0] \
@@ -1253,6 +1407,71 @@ def compute_franka_reward(
     # <editor-fold desc="4. reward for distance of each finger from the objects">
     # XXX: inital leftfranka z-pos is near cup-z already, distance reward seems like around reward
     # reward for distance of each finger from the spoon, finger distance=0.08
+    # finger_dist_reward = torch.zeros_like(rot_reward)
+    # lfinger_dist = quat_rotate_inverse(spoon_grasp_rot, franka_lfinger_pos - spoon_grasp_pos)[:, 2]
+    # rfinger_dist = quat_rotate_inverse(spoon_grasp_rot, franka_rfinger_pos - spoon_grasp_pos)[:, 2]
+    # finger_dist_reward = torch.where(lfinger_dist > 0,
+    #                                  torch.where(rfinger_dist < 0,
+    #                                              50 * (0.08 - (torch.abs(lfinger_dist) + torch.abs(rfinger_dist))),
+    #                                              finger_dist_reward),
+    #                                  finger_dist_reward)
+    #
+    # # reward for distance of each finger from the cup
+    # finger_dist_reward_1 = torch.zeros_like(rot_reward_1)
+    # lfinger_dist_1 = quat_rotate_inverse(cup_grasp_rot, franka_lfinger_pos_1 - cup_grasp_pos)[:, 2]
+    # rfinger_dist_1 = quat_rotate_inverse(cup_grasp_rot, franka_rfinger_pos_1 - cup_grasp_pos)[:, 2]
+    # finger_dist_reward_1 = torch.where(lfinger_dist_1 > 0,
+    #                                    torch.where(rfinger_dist_1 < 0,
+    #                                                50 * (0.08 - 0.2 * (
+    #                                                        torch.abs(lfinger_dist_1) + torch.abs(rfinger_dist_1))),
+    #                                                finger_dist_reward_1),
+    #                                    finger_dist_reward_1)
+
+    '''Box and turn'''
+    # finger_dist_reward = torch.zeros_like(rot_reward)
+    # lfinger_dist = torch.abs(franka_lfinger_pos[:, 1] - spoon_grasp_pos[:, 1])
+    # rfinger_dist = torch.abs(franka_rfinger_pos[:, 1] - spoon_grasp_pos[:, 1])
+    # finger_dist_reward = torch.where(franka_lfinger_pos[:, 1] > spoon_grasp_pos[:, 1],
+    #                                  torch.where(franka_rfinger_pos[:, 1] < spoon_grasp_pos[:, 1],
+    #                                              (0.04 - lfinger_dist) + (0.04 - rfinger_dist), finger_dist_reward),
+    #                                  finger_dist_reward)  # 2 together with the following lines
+    #
+    # '''Important'''
+    # finger_dist_reward = torch.where(franka_lfinger_pos[:, 1] > spoon_grasp_pos[:, 1],
+    #                                  torch.where(franka_rfinger_pos[:, 1] < spoon_grasp_pos[:, 1], torch.where(
+    #                                      d <= 0.02, ((0.04 - lfinger_dist) + (0.04 - rfinger_dist)) * 100,
+    #                                      finger_dist_reward), finger_dist_reward),
+    #                                  finger_dist_reward)  # 3
+
+    '''Continous'''
+    # finger_dist_reward = torch.zeros_like(rot_reward)
+    # lfinger_dist = torch.abs(franka_lfinger_pos[:, 2] - (spoon_grasp_pos[:, 2]))
+    # rfinger_dist = torch.abs(franka_rfinger_pos[:, 2] - (spoon_grasp_pos[:, 2]))
+    # finger_dist_reward = torch.where(franka_lfinger_pos[:, 2] > spoon_grasp_pos[:, 2],
+    #                                  torch.where(franka_rfinger_pos[:, 2] < spoon_grasp_pos[:, 2],
+    #                                              (0.04 - lfinger_dist) + (0.04 - rfinger_dist), finger_dist_reward),
+    #                                  finger_dist_reward)
+    # finger_dist_reward = torch.where(franka_lfinger_pos[:, 2] > spoon_grasp_pos[:, 2],
+    #                                  torch.where(franka_rfinger_pos[:, 2] < spoon_grasp_pos[:, 2], torch.where(
+    #                                      d <= 0.02, ((0.04 - lfinger_dist) + (0.04 - rfinger_dist)) * 100,
+    #                                      finger_dist_reward), finger_dist_reward),
+    #                                  finger_dist_reward)
+    #
+    # finger_dist_reward_1 = torch.zeros_like(rot_reward_1)
+    # lfinger_dist_1 = torch.abs(franka_lfinger_pos_1[:, 2] - (cup_grasp_pos[:, 2]))
+    # rfinger_dist_1 = torch.abs(franka_rfinger_pos_1[:, 2] - (cup_grasp_pos[:, 2]))
+    # finger_dist_reward_1 = torch.where(franka_lfinger_pos_1[:, 2] > cup_grasp_pos[:, 2],
+    #                                    torch.where(franka_rfinger_pos_1[:, 2] < cup_grasp_pos[:, 2],
+    #                                                (0.04 - lfinger_dist_1) + (0.04 - rfinger_dist_1),
+    #                                                finger_dist_reward_1),
+    #                                    finger_dist_reward_1)
+    # finger_dist_reward_1 = torch.where(franka_lfinger_pos_1[:, 2] > cup_grasp_pos[:, 2],
+    #                                    torch.where(franka_rfinger_pos_1[:, 2] < cup_grasp_pos[:, 2], torch.where(
+    #                                        d_1 <= 0.02, ((0.04 - lfinger_dist_1) + (0.04 - rfinger_dist_1)) * 100,
+    #                                        finger_dist_reward_1), finger_dist_reward_1),
+    #                                    finger_dist_reward_1)  # 3
+
+    '''Discrete'''
     finger_dist_reward = torch.zeros_like(rot_reward)
     lfinger_dist = quat_rotate_inverse(spoon_grasp_rot, franka_lfinger_pos - spoon_grasp_pos)[:, 2]
     rfinger_dist = quat_rotate_inverse(spoon_grasp_rot, franka_rfinger_pos - spoon_grasp_pos)[:, 2]
@@ -1278,9 +1497,15 @@ def compute_franka_reward(
     tmp_1 = torch.clamp(torch.abs(lfinger_dist_1 - rfinger_dist_1), 0.0505, 0.08)
     finger_dist_reward_1 = torch.where(lfinger_dist_1 > 0,
                                        torch.where(rfinger_dist_1 < 0,
-                                                   50 * (0.08 - tmp_1),
+                                                   (0.08 - tmp_1),
                                                    finger_dist_reward_1),
-                                       finger_dist_reward_1) * 0.5 * dist_reward_1
+                                       finger_dist_reward_1)
+    finger_dist_reward_1 = torch.where(lfinger_dist_1 > 0,
+                                       torch.where(rfinger_dist_1 < 0,
+                                            torch.where(d_1 <= 0.02,
+                                                   (0.08 - tmp_1) * 100,
+                                                   finger_dist_reward_1),finger_dist_reward_1),
+                                       finger_dist_reward_1)
     # </editor-fold>
 
     # <editor-fold desc="5. fall penalty(table or ground)">
@@ -1300,24 +1525,21 @@ def compute_franka_reward(
 
     # <editor-fold desc="7. lift reward">
     # the higher the y coordinates of objects are, the larger the rewards will be set
-    init_spoon_pos = torch.tensor([-0.2785, 0.499, 0.29])
+    init_spoon_pos = torch.tensor([-0.2785, 0.499, 0.29])  # TODO: need to be changed
     init_cup_pos = torch.tensor([-0.3, 0.4425, -0.29])
     lift_reward = torch.zeros_like(rot_reward)
     lift_dist = spoon_positions[:, 1] - init_spoon_pos[1]
     lift_reward = torch.where(lift_dist < 0, lift_dist * around_handle_reward + lift_dist, lift_reward)
-    # lift_reward = torch.where(lift_dist > 0,
-    #                           (lift_dist * around_handle_reward + lift_dist + lift_reward * finger_dist_reward) * 100,
-    #                           lift_reward)  # 2
-    # lift_reward = torch.where(lift_dist > 0,
-    #                           (lift_dist * around_handle_reward + lift_reward * finger_dist_reward) * 100,
-    #                           lift_reward)  # 3
+    lift_reward = torch.where(lift_dist > 0,
+                              (lift_dist * around_handle_reward + lift_dist + lift_dist * finger_dist_reward * 10) * 5,
+                              lift_reward)
 
-    # lift_reward = torch.where(lift_dist > 0,
-    #                           (lift_dist * around_handle_reward + lift_dist + lift_dist * finger_dist_reward * 10) * 5,
-    #                           lift_reward)  # 3
-
-    lift_reward_1 = (cup_positions[:, 1] - init_cup_pos[1]) * around_handle_reward_1 + (
-            cup_positions[:, 1] - init_cup_pos[1])
+    lift_reward_1 = torch.zeros_like(rot_reward_1)
+    lift_dist_1 = cup_positions[:, 1] - init_cup_pos[1]
+    lift_reward_1 = torch.where(lift_dist_1 < 0, lift_dist_1 * around_handle_reward_1 + lift_dist_1, lift_reward_1)
+    lift_reward_1 = torch.where(lift_dist_1 > 0, (
+            lift_dist_1 * around_handle_reward_1 + lift_dist_1 + lift_dist_1 * finger_dist_reward_1 * 10) * 5,
+                                lift_reward_1)  # 3
     # </editor-fold>
 
     # ....................stage 2 reward....................................................................
@@ -1341,20 +1563,41 @@ def compute_franka_reward(
     
     d_spoon_cup_y = torch.norm(franka_grasp_pos[:, 1] - franka_grasp_pos_1[:, 1], p=2, dim=-1)
     dist_reward_stage2_y=torch.zeros_like(dist_reward)
-    dist_reward_stage2_y = torch.where(franka_grasp_pos[:, 1] > franka_grasp_pos_1[:, 1],
-                                       torch.where(d_spoon_cup_y > 0.4, 1.0 / (1.0 + d_spoon_cup_y ** 2),
-                                                   dist_reward_stage2_y),
-                                       dist_reward_stage2_y)
-    dist_reward_stage2_y *= dist_reward_stage2_y
+    # dist_reward_stage2_y = torch.where(franka_grasp_pos[:, 1] > franka_grasp_pos_1[:, 1],
+    #                                    torch.where(d_spoon_cup_y > 0.4, 1.0 / (1.0 + d_spoon_cup_y ** 2),
+    #                                                dist_reward_stage2_y),
+    #                                    dist_reward_stage2_y)
+    # dist_reward_stage2_y *= dist_reward_stage2_y
 
+    # ....................stage 3 reward....................................................................
+    preset_h = 0.08
+    cup_r = 0.025
+    spoon_tip_pos = quat_rotate_inverse(spoon_orientations,spoon_positions) - 0.5 * torch.tensor([0.15, 0.0, 0.0], device=tensor_device)
+    spoon_tip_pos = quat_rotate(spoon_orientations,spoon_tip_pos)
+    v1_s3 = quat_rotate_inverse(cup_orientations, spoon_tip_pos-cup_positions)   # relative spoon pos in cup
+    prestage_s3 = [ torch.gt(torch.tensor([cup_r, cup_r], device=tensor_device),v1_s3[:, [0,2]]).all(dim=-1) ,
+                    torch.lt(torch.tensor([-cup_r, -cup_r], device=tensor_device),v1_s3[:, [0,2]]).all(dim=-1) ,   # x,z in cup
+                    torch.logical_and(v1_s3[:, 1] - preset_h < 0,v1_s3[:, 1] > 0) ]   # spoon tip in cup
+    stage_s3 = torch.logical_and(v1_s3[:, 1] - 0.11 < 0,v1_s3[:, 1] > 0)
+    flag_range_s3 = torch.logical_and(prestage_s3[0], prestage_s3[1])
+    flag_full_s3 = torch.logical_and(flag_range_s3, prestage_s3[2])
+    h_s3 = torch.abs(v1_s3[:, 1] - preset_h)
+    h_reward_s3 = 2.0 / (1.0 + h_s3**2) * flag_range_s3
+    d_s3 = torch.norm(v1_s3[:, [0,2]] - torch.tensor([cup_r, cup_r], device=tensor_device), dim=-1)
+    d_reward_s3 = 2.0 / (1.0 + d_s3**2) * flag_range_s3
+    v_reward_s3 = torch.norm(spoon_linvels, dim=-1) * flag_full_s3
 
+    h_reward_s3 = torch.where(stage_s3, 10 * h_reward_s3, h_reward_s3)
+    d_reward_s3 = torch.where(stage_s3, 10 * d_reward_s3, d_reward_s3)
+    v_reward_s3 = torch.where(stage_s3, 10 * v_reward_s3, v_reward_s3)
 
     # ................................................................................................................
     ## sum of rewards
     sf = 1  # spoon flag
     cf = 1  # cup flag
-    stage1= 0 # stage1 flag
-    stage2 = 1  # stage1 flag
+    stage1 = 0 # stage1 flag
+    stage2 = 1  # stage2 flag
+    stage3 = 1  # stage3 flag
     rewards = stage1*(dist_reward_scale * (dist_reward * sf + dist_reward_1 * cf) \
               + rot_reward_scale * (rot_reward * sf + rot_reward_1 * cf) \
               + around_handle_reward_scale * (around_handle_reward * sf + around_handle_reward_1 * cf) \
@@ -1362,10 +1605,16 @@ def compute_franka_reward(
               + lift_reward_scale * (lift_reward * sf + lift_reward_1 * cf) \
               - action_penalty_scale * action_penalty \
               - spoon_fall_penalty)
-    rewards=rewards+stage2*(lift_reward_scale*0.1*(lift_reward * sf + lift_reward_1 * cf)\
-                    +dist_reward_stage2*dist_reward_scale*20\
-                    +rot_reward_stage2*rot_reward_scale*20\
-                    +dist_reward_stage2_y*dist_reward_scale*20)
+              
+    rewards = rewards + stage2 * (lift_reward_scale * 0.1 * (lift_reward * sf + lift_reward_1 * cf) \
+                    + dist_reward_stage2 * dist_reward_scale * 20 \
+                    + rot_reward_stage2 * rot_reward_scale * 20 \
+                    + dist_reward_stage2_y * dist_reward_scale * 20)
+
+    #TODO: add stage 3 reward
+    rewards = rewards + stage3 * ( h_reward_s3 * 20 \
+                    + d_reward_s3 * 20 \
+                    + v_reward_s3 * 20)
 
     # test args
     rewards_step = rewards.clone().detach()
@@ -1389,34 +1638,34 @@ def compute_franka_reward(
 
     # <editor-fold desc="2. collision penalty (contact)">
     # ignore franka&franka1: link6, gripper force
-    reset_num1 = torch.cat((contact_forces[:, 0:5, :], contact_forces[:, 6:7, :]), dim=1)
-    reset_num2 = torch.cat((contact_forces[:, 10:15, :], contact_forces[:, 16:17, :]), dim=1)
-    # reset numm is the sum of the force in all of links which are unable to get force
-    reset_num = torch.cat((reset_num1, reset_num2), dim=-1)
-    reset_numm = torch.norm(torch.norm(reset_num[:, :, 0:6], dim=1), dim=1)  # value is contact force
-    # reward compute
-    rewards = torch.where(reset_numm > 600, rewards - 1, rewards)
-    # test args
-    collision_penalty_bonus = rewards - rewards_step
-    rewards_step += collision_penalty_bonus
+    # reset_num1 = torch.cat((contact_forces[:, 0:5, :], contact_forces[:, 6:7, :]), dim=1)
+    # reset_num2 = torch.cat((contact_forces[:, 10:15, :], contact_forces[:, 16:17, :]), dim=1)
+    # # reset numm is the sum of the force in all of links which are unable to get force
+    # reset_num = torch.cat((reset_num1, reset_num2), dim=-1)
+    # reset_numm = torch.norm(torch.norm(reset_num[:, :, 0:6], dim=1), dim=1)  # value is contact force
+    # # reward compute
+    # rewards = torch.where(reset_numm > 600, rewards - 1, rewards)
+    # # test args
+    # collision_penalty_bonus = rewards - rewards_step
+    # rewards_step += collision_penalty_bonus
     # </editor-fold>
 
     # <editor-fold desc="3.lossen gripper penalty(penalty when cup or spoon is taken up but gripper lossen.)">
     # rewards = torch.where(cup_positions[:, 1] > 0.445,
-    #                     torch.where(torch.abs(lfinger_dist_1)+torch.abs(rfinger_dist_1) > 0.055,   # give +0.005 tolerance
-    #                                rewards - 0.1,
-    #                     rewards), rewards)
+    #                       torch.where(torch.abs(lfinger_dist_1) + torch.abs(rfinger_dist_1) > 0.055,
+    #                                   # give +0.005 tolerance
+    #                                   rewards - 0.1,
+    #                                   rewards), rewards)
     # cup_penalty_lossen = rewards - rewards_step
     # rewards_step += cup_penalty_lossen
     #
     # rewards = torch.where(spoon_positions[:, 1] > 0.5,
-    #                     torch.where(torch.abs(lfinger_dist)+torch.abs(rfinger_dist) > 0.015,
-    #                                 rewards - 0.1,
-    #                     rewards), rewards)
+    #                       torch.where(torch.abs(lfinger_dist) + torch.abs(rfinger_dist) > 0.015,
+    #                                   rewards - 0.1,
+    #                                   rewards), rewards)
     # spoon_penalty_lossen = rewards - rewards_step
     # rewards_step += spoon_penalty_lossen
     # </editor-fold>
-
     # </editor-fold>
 
     # <editor-fold desc="prevent bad style in catching cup (opposite orientation)">
@@ -1435,10 +1684,10 @@ def compute_franka_reward(
     # <editor-fold desc="Reset">
     # if reset buf equal to 1, reset this environment
     # reset if cup and spoon is taken up (max) or max length reached
-    # TODO: may need further refinement
-    reset_buf = torch.where(spoon_positions[:, 1] > 1.0, torch.ones_like(reset_buf), reset_buf)
-    reset_buf = torch.where(cup_positions[:, 1] > 0.7, torch.ones_like(reset_buf), reset_buf)  # taken up too high
+    '''taken up too high'''
     reset_buf = torch.where(spoon_positions[:, 1] > 1.1, torch.ones_like(reset_buf), reset_buf)
+    reset_buf = torch.where(cup_positions[:, 1] > 0.78, torch.ones_like(reset_buf), reset_buf)  #
+    '''fall'''
     reset_buf = torch.where(cup_positions[:, 1] < 0.3, torch.ones_like(reset_buf),
                             reset_buf)  # cup fall to table or ground
     reset_buf = torch.where(torch.acos(dot_cup_reverse) * 180 / torch.pi > 90, torch.ones_like(reset_buf),
@@ -1447,8 +1696,8 @@ def compute_franka_reward(
                             reset_buf)  # spoon fall to table or ground
 
     # # cup fall to table
-    reset_buf = torch.where(reset_numm > 600, torch.ones_like(reset_buf), reset_buf)
-    # # reset when max_episode_length
+    # reset_buf = torch.where(reset_numm > 400, torch.ones_like(reset_buf), reset_buf)
+    # reset when max_episode_length
     reset_buf = torch.where(progress_buf >= max_episode_length - 1, torch.ones_like(reset_buf), reset_buf)
     # </editor-fold>
 
@@ -1475,12 +1724,21 @@ def compute_franka_reward(
     }
     rewards_bonus = {
         'take_cup_bonus(franka0)': take_cup_bonus,
-        'collision_penalty_bonus': collision_penalty_bonus,
+        # 'collision_penalty_bonus': collision_penalty_bonus,
         # 'cup_penalty_lossen': cup_penalty_lossen,
         # 'spoon_penalty_lossen': spoon_penalty_lossen,
         'take_spoon_bonus': take_spoon_bonus,
+        'take_cup_bonus': take_cup_bonus,
+        # 'collision_penalty_bonus': collision_penalty_bonus,
+        # 'cup_penalty_lossen': cup_penalty_lossen,
+        # 'spoon_penalty_lossen': spoon_penalty_lossen,
+        'hrew': h_reward_s3,
+        'drew': d_reward_s3,
+        'vrew': v_reward_s3,
     }
 
+    if False:
+        print(prestage_s3)
     # output dict
     rewards_dict = {
         'Franka_0': reward_franka_0,
@@ -1489,7 +1747,7 @@ def compute_franka_reward(
         'bonus': rewards_bonus,
     }
 
-    return rewards, reset_buf, rewards_dict,gripped,gripped_1
+    return rewards, reset_buf, rewards_dict, gripped, gripped_1
 
 
 # compute
@@ -1503,12 +1761,12 @@ def compute_grasp_transforms(hand_rot, hand_pos, franka_local_grasp_rot, franka_
 
     global_franka_rot, global_franka_pos = tf_combine(
         hand_rot, hand_pos, franka_local_grasp_rot, franka_local_grasp_pos)
-    global_cup_rot, global_cup_pos = tf_combine(
-        cup_rot, cup_pos, cup_local_grasp_rot, cup_local_grasp_pos)
+    global_spoon_rot, global_spoon_pos = tf_combine(
+        spoon_rot, spoon_pos, spoon_local_grasp_rot, spoon_local_grasp_pos)
 
     global_franka_rot_1, global_franka_pos_1 = tf_combine(
         hand_rot_1, hand_pos_1, franka_local_grasp_rot_1, franka_local_grasp_pos_1)
-    global_spoon_rot, global_spoon_pos = tf_combine(
-        spoon_rot, spoon_pos, spoon_local_grasp_rot, spoon_local_grasp_pos)
+    global_cup_rot, global_cup_pos = tf_combine(
+        cup_rot, cup_pos, cup_local_grasp_rot, cup_local_grasp_pos)
 
     return global_franka_rot, global_franka_pos, global_spoon_rot, global_spoon_pos, global_franka_rot_1, global_franka_pos_1, global_cup_rot, global_cup_pos

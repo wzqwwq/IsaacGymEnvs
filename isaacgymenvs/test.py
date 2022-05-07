@@ -18,7 +18,7 @@ import os
 from typing import Dict, Tuple, List
 
 torch.set_printoptions(precision=4, sci_mode=False)
-file_time = time.strftime("%m-%d %H_%M_%S", time.localtime())
+file_time = time.strftime("%m-%d-%H_%M_%S", time.localtime())
 test_config = configparser.ConfigParser()
 test_config.read('test_config.ini')
 franka_cfg_path = test_config['PRESET'].get('franka_cfg_path', './cfg/config.yaml')
@@ -39,6 +39,7 @@ output_hdf5_path = os.path.join(output_path, 'hdf5')
 output_hdf5_name = file_time + '.hdf5'
 manual_drive_k = test_config["SIM"].getfloat('manual_drive_k', 0.1)
 auto_error = test_config["SIM"].getfloat('auto_error', 1e-2)
+dof_path = test_config['SIM'].get('load_dof_path', './test_save/dof.txt')
 if target_data_path is None:
     auto_track_pose = False
 if write_hdf5data:
@@ -120,7 +121,7 @@ def save(path, name, data):
     print('save success to', name)
 
 
-def load_target_ee(filepath):
+def load_target_ee(filepath,dlen=9):
     # read target ee
     with open(filepath, "r") as f:
         txtdata = f.read()
@@ -129,7 +130,7 @@ def load_target_ee(filepath):
     res = []
     for i in x:
         tmp = re.findall(r"-?\d+\.?\d*", i)
-        if len(tmp) == 9:
+        if len(tmp) == dlen:
             res.append(tmp)
         elif len(tmp) == 0:
             pass
@@ -142,6 +143,11 @@ def load_target_ee(filepath):
 
     return torch.from_numpy(target).float()
 
+
+def load_franka_dof(doftxt):
+    doftensor = load_target_ee(doftxt, 9).flatten()
+    env.load_franka_dof(doftensor)
+    print('load dof target',doftensor)
 
 def parse_reward_detail(dictobj: Dict):
     for k, v in dictobj.items():
@@ -195,10 +201,10 @@ def print_state(if_all=False):
         print('ee_pose&gripper', torch.cat((ee_pose, gripper_dof), dim=1))
         print('obs-', env.compute_observations())
         print('rew-', env.compute_reward())
-        print("franka_grasp_pos", env.franka_grasp_pos)
+    
     if print_mode >= 2 or if_all==True:
         print_detail_clearly(env.reward_dict)
-        print("franka_grasp_pos", env.franka_grasp_pos)
+
     # print reset env_ids
     if print_mode >= 1 or if_all == True:
         check_reset()
@@ -256,6 +262,8 @@ class DualFrankaTest(DualFranka):
                 self.viewer, gymapi.KEY_V, "check_task_stage")
             self.gym.subscribe_viewer_keyboard_event(
                 self.viewer, gymapi.KEY_9, "pause_tracking")
+            self.gym.subscribe_viewer_keyboard_event(
+                self.viewer, gymapi.KEY_L, "load_franka_dof")
             # ik ee drive
             self.gym.subscribe_viewer_keyboard_event(
                 self.viewer, gymapi.KEY_LEFT_SHIFT, "switch_franka")
@@ -278,7 +286,7 @@ class DualFrankaTest(DualFranka):
     def compute_reward(self, action=None):
         # no action penalty in test
         if action is None:
-            self.actions = torch.zeros(self.cfg["env"]["numActions"]).to(self.device)
+            self.actions = torch.zeros((self.num_Envs,self.cfg["env"]["numActions"])).to(self.device)
         else:
             self.actions = action
         super().compute_reward()
@@ -291,6 +299,11 @@ class DualFrankaTest(DualFranka):
         cam_target = gymapi.Vec3(*vec[1])
         middle_env = self.envs[self.num_envs // 2 + num_per_row // 2]
         self.gym.viewer_camera_look_at(self.viewer, middle_env, cam_pos, cam_target)
+
+    def load_franka_dof(self, doftensor):
+        self.franka_dof_targets[:, :18] = doftensor
+        self.compute_reward(action=None)
+        self.pre_physics_step(self.actions)
 
     def judge_now_stage(self, debug=False):
         # pre compute
@@ -337,16 +350,25 @@ class DualFrankaTest(DualFranka):
                     #     axis3[:, 1]-0.15/2 -0.1 > 0, # spoon tip higher than cup height(spoon_base_y-half_spoon_len-cup_height>0)
                     ]
 
+        spoon_tip_pos = quat_rotate_inverse(spoon_rot,spoon_pos) - 0.5 * torch.tensor([0.15, 0, 0])
+        spoon_tip_pos = quat_rotate(spoon_rot,spoon_tip_pos)
+        v1_s3 = quat_rotate_inverse(cup_rot, spoon_tip_pos-cup_pos)   # relative spoon pos in cup
         stage_3 = [
                     torch.acos(dot1) /3.1415*180 <30,
                     torch.gt(torch.tensor([0.025, 0.025]),axis3[:, [0,2]]).all() , 
                         axis3[:, 1]-0.15/2 - 0.1 < 0,   # spoon tip in cup
                 ]
+        
+        prestage_s3=[torch.gt(torch.tensor([0.025, 0.025]),v1_s3[:, [0,2]]) ,
+                    torch.lt(torch.tensor([-0.025, -0.025]),v1_s3[:, [0,2]]) ,   # x,z in cup
+                        v1_s3[:, 1] - 0.1 < 0 and v1_s3[:, 1] > 0 ]
+
         if debug:
             print("pre_stage_1", pre_stage_1)
             print("stage_1", stage_1)
             print("stage_2", stage_2)
             print("stage_3", stage_3)
+            print("prestage_3", prestage_s3)
         return [all(pre_stage_1), all(stage_1), all(stage_2), all(stage_3),]
 
 
@@ -445,8 +467,8 @@ def get_franka():
 def reset_env():
     # need to disable pose override in viewer
     print('Reset env')
-    env.reset_idx_replay_buffer(torch.arange(env.num_envs, device=env.device))
-   # env.reset_idx_replay_buffer(torch.arange(env.num_envs, device=env.device))
+    # env.reset_idx_replay_buffer(torch.arange(env.num_envs, device=env.device))
+    env.reset_idx(torch.arange(env.num_envs, device=env.device))
 
 
 def ready_to_track():
@@ -461,7 +483,7 @@ def ready_to_track():
     prev_task_stage = 0
     print_mode = 0
     now_stage = 0
-    target_pose = load_target_ee(target_data_path).to(env.device)
+    target_pose = load_target_ee(target_data_path, 9).to(env.device)
     total_stage = target_pose.shape[0]
     track_time = time.time()
     print('Start tracking, stage 0')
@@ -581,6 +603,8 @@ if __name__ == "__main__":
                 elif evt.action == "check_task_stage":
                     print_highlight('check task stage:')
                     env.judge_now_stage(debug=True)
+                elif evt.action == "load_franka_dof":
+                    load_franka_dof(dof_path)
                 elif evt.action == "pause_tracking":
                     try:
                         if now_stage < total_stage:

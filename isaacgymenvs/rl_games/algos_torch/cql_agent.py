@@ -36,6 +36,8 @@ class CQLAgent(BaseAlgorithm):
         self.replay_buffer_path = config["replay_buffer_path"]
         self.num_steps_per_episode = config.get("num_steps_per_episode", 1000)
         self.normalize_input = config.get("normalize_input", False)
+        self.actor_update_frequency = config.get("actor_update_frequency", 1)
+        self.critic_target_update_frequency = config.get("critic_target_update_frequency", 2)
 
         self.max_env_steps = config.get("max_env_steps", 1000)  # temporary, in future we will use other approach
 
@@ -61,7 +63,6 @@ class CQLAgent(BaseAlgorithm):
             'action_dim': self.env_info["action_space"].shape[0],
             'actions_num': self.actions_num,
             'input_shape': obs_shape,
-            'normalize_input': self.normalize_input,
             'normalize_input': self.normalize_input,
         }
         self.model = self.network.build(net_config)
@@ -387,10 +388,13 @@ class CQLAgent(BaseAlgorithm):
         critic_loss, critic1_loss, critic2_loss, min_qf1_loss, min_qf2_loss, std_q1, std_q2, alpha_prime_loss \
             = self.update_critic(obs, action, reward, next_obs, not_done, step)
 
-        actor_loss, entropy, alpha, alpha_loss = self.update_actor_and_alpha(obs, step)
+        if step % self.actor_update_frequency == 0:
+            actor_loss, entropy, alpha, alpha_loss = self.update_actor_and_alpha(obs, step)
 
         actor_loss_info = actor_loss, entropy, alpha, alpha_loss
-        self.soft_update_params(self.model.sac_network.critic, self.model.sac_network.critic_target,
+        
+        if step % self.critic_target_update_frequency == 0:
+            self.soft_update_params(self.model.sac_network.critic, self.model.sac_network.critic_target,
                                 self.critic_tau)
         return actor_loss_info, critic1_loss, critic2_loss, min_qf1_loss, min_qf2_loss, std_q1, std_q2, alpha_prime_loss
 
@@ -645,7 +649,7 @@ class CQLAgent(BaseAlgorithm):
                     return self.last_mean_rewards, self.epoch_num
                 update_time = 0
 
-                if self.epoch_num % 100 == 0:
+                if self.epoch_num % 30 == 0:
                     self.save(
                         os.path.join(self.checkpoint_dir, 'ep_' + str(self.epoch_num) + '_rew_' + str(mean_rewards)))
                     print('model backup save')
@@ -681,3 +685,108 @@ class CQLAgent(BaseAlgorithm):
         _dones = torch.tensor(np.array(_dataset['dones']), dtype=torch.float, device=self.device)
         self.replay_buffer.add(_obs, _actions, _rewards, _next_obs, _dones)
         print('hdf5 loaded from', dataset_path, 'now idx', self.replay_buffer.idx)
+        return _obs, _actions, _rewards, _next_obs, _dones
+
+    def regression(self, train_dataset, batch_size=256, total_epoch_num=570):
+        from torch.utils.data import Dataset, DataLoader, random_split
+        
+        self.init_tensors()
+        self.algo_observer.after_init(self)
+        self.last_mean_rewards = -100500
+        total_time = 0
+        # rep_count = 0
+        self.frame = 0
+        # self.obs = self.env_reset()
+        
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, pin_memory=False, drop_last=True)
+
+        print('\033[1;33mStart training\033[0m')  # add hint
+
+        while self.epoch_num < total_epoch_num:
+            
+            self.epoch_num += 1
+            frame = self.epoch_num
+            print('\033[1;32m---------------- Epoch {} ----------------\033[0m'.format(self.epoch_num))
+
+            # train epoch
+            actor_losses = []
+            entropies = []
+            alphas = []
+            alpha_losses = []
+            critic1_losses = []
+            critic2_losses = []
+            # add cql params
+            min_qf1_losses = []
+            min_qf2_losses = []
+            std_q1s = []
+            std_q2s = []
+            alpha_prime_losses = []
+
+            self.set_train()
+            for s in train_loader:
+                obs, reward, next_obs, done, action = s
+                not_done = 1.0 - done.float()
+                
+                # update
+                critic_loss, critic1_loss, critic2_loss, min_qf1_loss, min_qf2_loss, std_q1, std_q2, alpha_prime_loss \
+                    = self.update_critic(obs, action, reward, next_obs, not_done, 0)
+
+                actor_loss, entropy, alpha, alpha_loss = self.update_actor_and_alpha(obs, 0)
+
+                actor_loss_info = actor_loss, entropy, alpha, alpha_loss
+                self.soft_update_params(self.model.sac_network.critic, self.model.sac_network.critic_target,
+                                        self.critic_tau)
+
+                self.extract_actor_stats(actor_losses, entropies, alphas, alpha_losses, actor_loss_info)
+                critic1_losses.append(critic1_loss)
+                critic2_losses.append(critic2_loss)
+                min_qf1_losses.append(min_qf1_loss)
+                min_qf2_losses.append(min_qf2_loss)
+                std_q1s.append(std_q1)
+                std_q2s.append(std_q2)
+                alpha_prime_losses.append(alpha_prime_loss)
+
+            self.set_eval()
+            eval_loss = []
+            for s in train_loader:
+                obs, reward, next_obs, done, action = s
+                with torch.no_grad():
+                    pred_action = self.act(obs.float(), self.env_info["action_space"].shape, sample=True)
+                    loss = torch.norm(pred_action-action)
+                    eval_loss.append(loss)
+            mean_valid_loss = sum(eval_loss)/len(eval_loss)
+            print(f'Epoch [{frame}/{total_epoch_num}]: Train loss: {actor_loss:.4f}, Valid loss: {mean_valid_loss:.4f}')
+
+
+            self.writer.add_scalar('losses/a_loss', torch_ext.mean_list(actor_losses).item(), frame)
+            self.writer.add_scalar('losses/c1_loss', torch_ext.mean_list(critic1_losses).item(), frame)
+            self.writer.add_scalar('losses/c2_loss', torch_ext.mean_list(critic2_losses).item(), frame)
+            # std Q value add
+            self.writer.add_scalar('losses/std_c1_loss', torch_ext.mean_list(std_q1s).item(), frame)
+            self.writer.add_scalar('losses/std_c2_loss', torch_ext.mean_list(std_q2s).item(), frame)
+            self.writer.add_scalar('losses/min_c1_loss', torch_ext.mean_list(min_qf1_losses).item(), frame)
+            self.writer.add_scalar('losses/min_c2_loss', torch_ext.mean_list(min_qf2_losses).item(), frame)
+            if self.with_lagrange:
+                self.writer.add_scalar('losses/alpha_prime_loss', torch_ext.mean_list(alpha_prime_losses).item(),
+                                        frame)
+            # end cql
+            self.writer.add_scalar('losses/entropy', torch_ext.mean_list(entropies).item(), frame)
+            if alpha_losses[0] is not None:
+                self.writer.add_scalar('losses/alpha_loss', torch_ext.mean_list(alpha_losses).item(), frame)
+            self.writer.add_scalar('info/alpha', torch_ext.mean_list(alphas).item(), frame)
+
+            self.writer.add_scalar('info/epochs', self.epoch_num, frame)
+            self.algo_observer.after_print_stats(frame, self.epoch_num, total_time)
+
+            # <editor-fold desc="Checkpoint">
+            if mean_valid_loss < 1e-2:
+                print('vaild loss: ', mean_valid_loss)
+                self.save(
+                    os.path.join(self.checkpoint_dir, 'reg_ep_' + str(self.epoch_num)))
+
+            if self.epoch_num >= total_epoch_num:
+                self.save(os.path.join(self.checkpoint_dir,
+                                        'reg_last' + str(self.epoch_num)))
+                print('MAX EPOCHS NUM!')
+
+            # </editor-fold>
