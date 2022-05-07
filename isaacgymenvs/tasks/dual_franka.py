@@ -1072,6 +1072,8 @@ class DualFranka(VecTask):
             targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 6], self.franka_dof_targets[:, 15])
         self.franka_dof_targets[:, 16] = torch.where(franka1_work, tensor_clamp(
             targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 7], self.franka_dof_targets[:, 16])
+        self.franka_dof_targets[:, 17] = torch.where(franka1_work, tensor_clamp(
+            targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 8],self.franka_dof_targets[:, 17])
 
 
         # self.franka_dof_targets[:, self.num_franka_dofs:2 * self.num_franka_dofs] = tensor_clamp(
@@ -1643,10 +1645,19 @@ def compute_franka_reward(
     d_reward_s3 = torch.where(stage_s3, 10 * d_reward_s3, d_reward_s3)
     v_reward_s3 = torch.where(stage_s3, 10 * v_reward_s3, v_reward_s3)
 
+    work_together = torch.eq(gripped, gripped_1)
+    franka_work_alone = torch.lt(gripped, gripped_1)
+    franka1_work_alone = torch.gt(gripped, gripped_1)
+    franka_work = work_together | franka_work_alone
+    franka1_work = work_together | franka1_work_alone
     # ................................................................................................................
     ## sum of rewards
-    sf = 1  # spoon flag
-    cf = 1  # cup flag
+    # sf = 1  # spoon flag
+    #cf = 1  # cup flag
+    sf= torch.where(work_together,torch.where(work_together,1,0),0)
+    sf = torch.where(franka1_work_alone, torch.where(franka1_work_alone, 0, sf), sf)
+    cf= torch.where(work_together,torch.where(work_together,0,1),1)
+    cf = torch.where(franka1_work_alone, torch.where(franka1_work_alone, 1, cf), cf)
     stage1 = 1  # stage1 flag
     stage2 = 0  # stage2 flag
     stage3 = 0  # stage3 flag
