@@ -48,8 +48,8 @@ class DualFranka(VecTask):
         self.prop_height = 0.06
         self.prop_length = 0.06
         self.prop_spacing = 0.09
-        self.gripped = torch.zeros((1, self.num_Envs))
-        self.gripped_1 = torch.zeros((1, self.num_Envs))
+
+
         # num_obs = 42
         # num_acts = 18
         actors_per_env = 7
@@ -130,7 +130,9 @@ class DualFranka(VecTask):
         self.num_dofs = self.gym.get_sim_dof_count(self.sim) // self.num_envs
         self.franka_dof_targets = torch.zeros((self.num_envs, self.num_dofs), dtype=torch.float, device=self.device)
         self.global_indices = torch.arange(self.num_envs * 7, dtype=torch.int32, device=self.device).view(self.num_envs,
-                                                                                                          -1)
+                                                                                                       -1)
+        self.gripped = torch.zeros((1, self.num_Envs), device=self.device)
+        self.gripped_1 = torch.zeros((1, self.num_Envs), device=self.device)
         if self.ResetFromReplay:
             self.reset_idx_replay_buffer(torch.arange(self.num_envs, device=self.device))
         else:
@@ -652,7 +654,7 @@ class DualFranka(VecTask):
             data = hdf.get('observations')
             dataset1 = np.array(data)  # get the obversation buffer from replay buffer
             # rand_idx = random.randrange(0, dataset1.shape[0], 1)
-            rand_idx = 350
+            rand_idx = 320
             rand_franka_cup_pos = dataset1[rand_idx, -9:]
             rand_franka_spoon_pos = dataset1[rand_idx, -18:-9]
             rand_cup_pos = dataset1[rand_idx, -25:-18]
@@ -1014,25 +1016,70 @@ class DualFranka(VecTask):
 
     def pre_physics_step(self, actions):
         self.actions = actions.clone().to(self.device)  # (num_envs, 18)
-
         # compute franka next target
         # relative control
+
         targets = self.franka_dof_targets[:,
                   :self.num_franka_dofs] + self.franka_dof_speed_scales * self.dt * self.actions[:,
                                                                                     0:9] * self.action_scale
-        self.franka_dof_targets[:, :self.num_franka_dofs] = tensor_clamp(
-            targets, self.franka_dof_lower_limits, self.franka_dof_upper_limits)
+        #add finish wait
+        work_together = torch.eq(self.gripped, self.gripped_1)
+        franka_work_alone= torch.lt(self.gripped, self.gripped_1)
+        franka1_work_alone = torch.gt(self.gripped, self.gripped_1)
+        franka_work=work_together|franka_work_alone
+        franka1_work = work_together|franka1_work_alone
 
+        #TODO: rewrie it in simple
+        self.franka_dof_targets[:, 0] = torch.where(franka_work, tensor_clamp(
+            targets, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:,0],self.franka_dof_targets[:, 0])
+        self.franka_dof_targets[:, 1] = torch.where(franka_work, tensor_clamp(
+            targets, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 1], self.franka_dof_targets[:, 1])
+        self.franka_dof_targets[:, 2] = torch.where(franka_work, tensor_clamp(
+            targets, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 2], self.franka_dof_targets[:, 2])
+        self.franka_dof_targets[:, 3] = torch.where(franka_work, tensor_clamp(
+            targets, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 3], self.franka_dof_targets[:, 3])
+        self.franka_dof_targets[:, 4] = torch.where(franka_work, tensor_clamp(
+            targets, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 4], self.franka_dof_targets[:, 4])
+        self.franka_dof_targets[:, 5] = torch.where(franka_work, tensor_clamp(
+            targets, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 5], self.franka_dof_targets[:, 5])
+        self.franka_dof_targets[:, 6] = torch.where(franka_work, tensor_clamp(
+            targets, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 6], self.franka_dof_targets[:, 6])
+        self.franka_dof_targets[:, 7] = torch.where(franka_work, tensor_clamp(
+            targets, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 7], self.franka_dof_targets[:, 7])
+        self.franka_dof_targets[:, 8] = torch.where(franka_work, tensor_clamp(
+            targets, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 8], self.franka_dof_targets[:, 8])
+
+        # self.franka_dof_targets[:, :self.num_franka_dofs] =tensor_clamp(
+        #     targets, self.franka_dof_lower_limits, self.franka_dof_upper_limits)
         targets_1 = self.franka_dof_targets[:,
                     self.num_franka_dofs: 2 * self.num_franka_dofs] + self.franka_dof_speed_scales * self.dt \
                     * self.actions[:, 9:18] * self.action_scale
-        self.franka_dof_targets[:, self.num_franka_dofs:2 * self.num_franka_dofs] = tensor_clamp(
-            targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)
+
+        # TODO: rewrie it in simple
+        self.franka_dof_targets[:, 9] = torch.where(franka1_work, tensor_clamp(
+            targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 0], self.franka_dof_targets[:, 9])
+        self.franka_dof_targets[:, 10] = torch.where(franka1_work, tensor_clamp(
+            targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 1], self.franka_dof_targets[:, 10])
+        self.franka_dof_targets[:, 11] = torch.where(franka1_work, tensor_clamp(
+            targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 2], self.franka_dof_targets[:, 11])
+        self.franka_dof_targets[:, 12] = torch.where(franka1_work, tensor_clamp(
+            targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 3], self.franka_dof_targets[:, 12])
+        self.franka_dof_targets[:, 13] = torch.where(franka1_work, tensor_clamp(
+            targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 4], self.franka_dof_targets[:, 13])
+        self.franka_dof_targets[:, 14] = torch.where(franka1_work, tensor_clamp(
+            targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 5], self.franka_dof_targets[:, 14])
+        self.franka_dof_targets[:, 15] = torch.where(franka1_work, tensor_clamp(
+            targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 6], self.franka_dof_targets[:, 15])
+        self.franka_dof_targets[:, 16] = torch.where(franka1_work, tensor_clamp(
+            targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 7], self.franka_dof_targets[:, 16])
+
+
+        # self.franka_dof_targets[:, self.num_franka_dofs:2 * self.num_franka_dofs] = tensor_clamp(
+        #     targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)
         # grip_act_spoon=torch.where(self.gripped==1,torch.Tensor([[0.004, 0.004]] * self.num_envs).to(self.device), torch.Tensor([[0.04, 0.04]] * self.num_envs).to(self.device))
-        gripper_sep_spoon = self.franka_dof_targets[:, 7] + self.franka_dof_targets[:, 8]
-        gripper_sep_cup = self.franka_dof_targets[:, -1] + self.franka_dof_targets[:, -2]
         # self.franka_dof_targets[:,7]=torch.where(gripper_sep_spoon<0.008,0.04, 0.005)
         # self.franka_dof_targets[:,8]=torch.where(gripper_sep_spoon<0.008,0.04, 0.005)
+
         self.franka_dof_targets[:, 7] = torch.where(self.gripped == 1, 0.0046, 0.04)
         self.franka_dof_targets[:, 8] = torch.where(self.gripped == 1, 0.0046, 0.04)
         self.franka_dof_targets[:, -1] = torch.where(self.gripped_1 == 1, 0.0244, 0.04)
@@ -1041,6 +1088,7 @@ class DualFranka(VecTask):
         # give to gym
         self.gym.set_dof_position_target_tensor(self.sim,
                                                 gymtorch.unwrap_tensor(self.franka_dof_targets))
+
 
     def post_physics_step(self):  # what do frankas do after interacting with the envs
         self.progress_buf += 1
@@ -1402,6 +1450,10 @@ def compute_franka_reward(
                                                      around_handle_reward_1 + 0.5, around_handle_reward_1),
                                          around_handle_reward_1)
     gripped_1 = (around_handle_reward_1 == 1.5)
+    # franka_pause=(around_handle_reward == 1.5 and around_handle_reward_1==0)
+    # franka1_pause=(around_handle_reward == 0 and around_handle_reward_1==1.0)
+    # print("franka_pause",franka_pause)
+    # print("franka_pause_1", franka1_pause)
     # </editor-fold>
 
     # <editor-fold desc="4. reward for distance of each finger from the objects">
@@ -1595,9 +1647,9 @@ def compute_franka_reward(
     ## sum of rewards
     sf = 1  # spoon flag
     cf = 1  # cup flag
-    stage1 = 0 # stage1 flag
-    stage2 = 1  # stage2 flag
-    stage3 = 1  # stage3 flag
+    stage1 = 1  # stage1 flag
+    stage2 = 0  # stage2 flag
+    stage3 = 0  # stage3 flag
     rewards = stage1*(dist_reward_scale * (dist_reward * sf + dist_reward_1 * cf) \
               + rot_reward_scale * (rot_reward * sf + rot_reward_1 * cf) \
               + around_handle_reward_scale * (around_handle_reward * sf + around_handle_reward_1 * cf) \

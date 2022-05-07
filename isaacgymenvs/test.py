@@ -201,6 +201,7 @@ def print_state(if_all=False):
         print('ee_pose&gripper', torch.cat((ee_pose, gripper_dof), dim=1))
         print('obs-', env.compute_observations())
         print('rew-', env.compute_reward())
+
     
     if print_mode >= 2 or if_all==True:
         print_detail_clearly(env.reward_dict)
@@ -467,8 +468,8 @@ def get_franka():
 def reset_env():
     # need to disable pose override in viewer
     print('Reset env')
-    # env.reset_idx_replay_buffer(torch.arange(env.num_envs, device=env.device))
-    env.reset_idx(torch.arange(env.num_envs, device=env.device))
+    env.reset_idx_replay_buffer(torch.arange(env.num_envs, device=env.device))
+   # env.reset_idx(torch.arange(env.num_envs, device=env.device))
 
 
 def ready_to_track():
