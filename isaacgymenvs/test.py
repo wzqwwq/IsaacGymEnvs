@@ -201,6 +201,10 @@ def print_state(if_all=False):
         print('ee_pose&gripper', torch.cat((ee_pose, gripper_dof), dim=1))
         print('obs-', env.compute_observations())
         print('rew-', env.compute_reward())
+        print('sf',env.sf)
+        print('cf', env.cf)
+        print('gripped',env.gripped)
+        print('gripped_1', env.gripped_1)
 
     
     if print_mode >= 2 or if_all==True:
