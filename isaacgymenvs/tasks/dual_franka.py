@@ -1295,7 +1295,7 @@ def compute_franka_reward(
         num_envs: int, dist_reward_scale: float, rot_reward_scale: float, around_handle_reward_scale: float,
         lift_reward_scale: float, finger_dist_reward_scale: float, action_penalty_scale: float, distX_offset: float,
         max_episode_length: float
-) -> Tuple[Tensor, Tensor, Dict[str, Union[Dict[str, Tuple[Tensor, Union[Tensor, float]]], Dict[str, Tuple[Tensor, float]], Dict[str, Tensor]]], Tensor, Tensor, Tensor, Tensor]:
+) -> Tuple[Tensor, Tensor, Dict[str, Union[Dict[str, Tuple[Tensor, Union[Tensor, float]]], Dict[str, Tuple[Tensor, float]], Dict[str, Tensor]]], Tensor, Tensor, int, int]:
 
     """
     Tuple[Tensor, Tensor, Dict[str, Union[Dict[str, Tuple[Tensor, float]],
