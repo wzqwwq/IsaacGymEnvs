@@ -1656,16 +1656,16 @@ def compute_franka_reward(
     franka1_work = caught | franka1_work_alone
     # ................................................................................................................
     ## sum of rewards
-    # sf = 1  # spoon flag
-    #cf = 1  # cup flag
+    sf = 1  # spoon flag
+    cf = 0  # cup flag
     # print("uncaught",uncaught)
     # print("caught", caught)
-    sf= torch.where(uncaught==1,1,0)
-    sf = torch.where(franka_work_alone, 1, sf)
-    sf = torch.where(caught==1, 1, sf)
-    cf= torch.where(uncaught==1,0,1)
-    cf = torch.where(franka1_work_alone, 1, cf)
-    cf = torch.where(caught==1, 1, cf)
+    # sf= torch.where(uncaught==1,1,0)
+    # sf = torch.where(franka_work_alone, 1, sf)
+    # sf = torch.where(caught==1, 1, sf)
+    # cf= torch.where(uncaught==1,0,1)
+    # cf = torch.where(franka1_work_alone, 1, cf)
+    # cf = torch.where(caught==1, 1, cf)
     stage1 = 1  # stage1 flag
     stage2 = 0  # stage2 flag
     stage3 = 0  # stage3 flag
