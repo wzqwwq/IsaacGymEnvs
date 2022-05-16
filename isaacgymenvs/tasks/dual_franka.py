@@ -629,7 +629,7 @@ class DualFranka(VecTask):
         return self.obs_buf
 
     def compute_reward(self):
-        self.rew_buf[:], self.reset_buf[:], self.reward_dict, self.gripped, self.gripped_1 = compute_franka_reward(
+        self.rew_buf[:], self.reset_buf[:], self.reward_dict, self.gripped, self.gripped_1,self.sf,self.cf= compute_franka_reward(
             self.reset_buf, self.progress_buf, self.actions,
             self.franka_grasp_pos, self.cup_grasp_pos, self.franka_grasp_rot,
             self.franka_grasp_pos_1, self.spoon_grasp_pos, self.franka_grasp_rot_1,
@@ -1293,7 +1293,8 @@ def compute_franka_reward(
         num_envs: int, dist_reward_scale: float, rot_reward_scale: float, around_handle_reward_scale: float,
         lift_reward_scale: float, finger_dist_reward_scale: float, action_penalty_scale: float, distX_offset: float,
         max_episode_length: float
-) -> Tuple[Tensor, Tensor, Dict[str, Union[Dict[str, Tuple[Tensor, Union[Tensor, float]]], Dict[str, Tuple[Tensor, float]], Dict[str, Tensor]]], Tensor, Tensor]:
+) -> Tuple[Tensor, Tensor, Dict[str, Union[Dict[str, Tuple[Tensor, Union[Tensor, float]]], Dict[str, Tuple[Tensor, float]], Dict[str, Tensor]]], Tensor, Tensor, Tensor, Tensor]:
+
     """
     Tuple[Tensor, Tensor, Dict[str, Union[Dict[str, Tuple[Tensor, float]],
                                            Dict[str, Tensor], Dict[str, Union[Tensor, Tuple[Tensor, float]]]]]]:
@@ -1645,19 +1646,24 @@ def compute_franka_reward(
     d_reward_s3 = torch.where(stage_s3, 10 * d_reward_s3, d_reward_s3)
     v_reward_s3 = torch.where(stage_s3, 10 * v_reward_s3, v_reward_s3)
 
-    work_together = torch.eq(gripped, gripped_1)
+    uncaught= torch.where(gripped<1,torch.where(gripped_1<1,1,0),0)
+    caught= torch.where(gripped>0,torch.where(gripped_1>0,1,0),0)
     franka_work_alone = torch.lt(gripped, gripped_1)
     franka1_work_alone = torch.gt(gripped, gripped_1)
-    franka_work = work_together | franka_work_alone
-    franka1_work = work_together | franka1_work_alone
+    franka_work = uncaught | franka_work_alone
+    franka1_work = uncaught | franka1_work_alone
     # ................................................................................................................
     ## sum of rewards
     # sf = 1  # spoon flag
     #cf = 1  # cup flag
-    sf= torch.where(work_together,torch.where(work_together,1,0),0)
-    sf = torch.where(franka1_work_alone, torch.where(franka1_work_alone, 0, sf), sf)
-    cf= torch.where(work_together,torch.where(work_together,0,1),1)
-    cf = torch.where(franka1_work_alone, torch.where(franka1_work_alone, 1, cf), cf)
+    print("uncaught",uncaught)
+    print("caught", caught)
+    sf= torch.where(uncaught==1,1,0)
+    sf = torch.where(franka_work_alone, 1, sf)
+    sf = torch.where(caught==1, 1, sf)
+    cf= torch.where(uncaught==1,0,1)
+    cf = torch.where(franka1_work_alone, 1, cf)
+    cf = torch.where(caught==1, 1, cf)
     stage1 = 1  # stage1 flag
     stage2 = 0  # stage2 flag
     stage3 = 0  # stage3 flag
@@ -1810,7 +1816,7 @@ def compute_franka_reward(
         'bonus': rewards_bonus,
     }
 
-    return rewards, reset_buf, rewards_dict, gripped, gripped_1
+    return rewards, reset_buf, rewards_dict, gripped, gripped_1,sf,cf
 
 
 # compute
