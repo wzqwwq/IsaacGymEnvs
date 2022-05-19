@@ -527,7 +527,6 @@ class DualFranka(VecTask):
         # print('self.gripper_forward_axis: {}, self.gripper_up_axis: {}'.format(self.gripper_forward_axis,
         #                                                                         self.gripper_up_axis))
         self.cup_up_axis = to_torch([0, 1, 0], device=self.device).repeat((self.num_envs, 1))
-
         self.gripper_forward_axis_1 = to_torch([0, 0, 1], device=self.device).repeat((self.num_envs, 1))
         self.spoon_inward_axis = to_torch([1, 0, 0], device=self.device).repeat((self.num_envs, 1))
         self.gripper_up_axis_1 = to_torch([1, 0, 0], device=self.device).repeat((self.num_envs, 1))
@@ -1662,9 +1661,9 @@ def compute_franka_reward(
     sf= torch.where(uncaught==1,1,0)
     sf = torch.where(franka_work_alone, 1, sf)
     sf = torch.where(caught==1, 1, sf)
-    cf= torch.where(uncaught==1,0,1)
-    cf = torch.where(franka1_work_alone, 1, cf)
-    cf = torch.where(caught==1, 1, cf)
+    cf= torch.where(uncaught==1,0,2)
+    cf = torch.where(franka1_work_alone, 2, cf)
+    cf = torch.where(caught==1, 2, cf)
     stage1 = 1  # stage1 flag
     stage2 = 0  # stage2 flag
     stage3 = 0  # stage3 flag
