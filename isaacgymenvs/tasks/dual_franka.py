@@ -1024,62 +1024,61 @@ class DualFranka(VecTask):
                                                                                     0:9] * self.action_scale
         #add finish wait
 
-        # uncaught = torch.where(self.gripped < 1, torch.where(self.gripped_1 < 1, 1, 0), 0)
-        # caught = torch.where(self.gripped > 0, torch.where(self.gripped_1 > 0, 1, 0), 0)
-        # franka_work_alone = torch.lt(self.gripped, self.gripped_1)
-        # franka1_work_alone = torch.gt(self.gripped, self.gripped_1)
-        # franka_work = uncaught| caught | franka_work_alone
-        # franka1_work = uncaught| caught | franka1_work_alone
+        uncaught = torch.where(self.gripped < 1, torch.where(self.gripped_1 < 1, 1, 0), 0)
+        caught = torch.where(self.gripped > 0, torch.where(self.gripped_1 > 0, 1, 0), 0)
+        franka_work_alone = torch.lt(self.gripped, self.gripped_1)
+        franka1_work_alone = torch.gt(self.gripped, self.gripped_1)
+        franka_work = uncaught| caught | franka_work_alone
+        franka1_work = uncaught| caught | franka1_work_alone
         #
         # #TODO: rewrie it in simple
-        # self.franka_dof_targets[:, 0] = torch.where(franka_work==1, tensor_clamp(
-        #     targets, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:,0],self.franka_dof_targets[:, 0])
-        # self.franka_dof_targets[:, 1] = torch.where(franka_work==1, tensor_clamp(
-        #     targets, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 1], self.franka_dof_targets[:, 1])
-        # self.franka_dof_targets[:, 2] = torch.where(franka_work==1, tensor_clamp(
-        #     targets, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 2], self.franka_dof_targets[:, 2])
-        # self.franka_dof_targets[:, 3] = torch.where(franka_work==1, tensor_clamp(
-        #     targets, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 3], self.franka_dof_targets[:, 3])
-        # self.franka_dof_targets[:, 4] = torch.where(franka_work==1, tensor_clamp(
-        #     targets, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 4], self.franka_dof_targets[:, 4])
-        # self.franka_dof_targets[:, 5] = torch.where(franka_work==1, tensor_clamp(
-        #     targets, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 5], self.franka_dof_targets[:, 5])
-        # self.franka_dof_targets[:, 6] = torch.where(franka_work==1, tensor_clamp(
-        #     targets, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 6], self.franka_dof_targets[:, 6])
-        # self.franka_dof_targets[:, 7] = torch.where(franka_work==1, tensor_clamp(
-        #     targets, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 7], self.franka_dof_targets[:, 7])
-        # self.franka_dof_targets[:, 8] = torch.where(franka_work==1, tensor_clamp(
-        #     targets, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 8], self.franka_dof_targets[:, 8])
+        self.franka_dof_targets[:, 0] = torch.where(franka_work==1, tensor_clamp(
+            targets, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 0],self.franka_dof_targets[:, 0])
+        self.franka_dof_targets[:, 1] = torch.where(franka_work==1, tensor_clamp(
+            targets, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 1], self.franka_dof_targets[:, 1])
+        self.franka_dof_targets[:, 2] = torch.where(franka_work==1, tensor_clamp(
+            targets, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 2], self.franka_dof_targets[:, 2])
+        self.franka_dof_targets[:, 3] = torch.where(franka_work==1, tensor_clamp(
+            targets, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 3], self.franka_dof_targets[:, 3])
+        self.franka_dof_targets[:, 4] = torch.where(franka_work==1, tensor_clamp(
+            targets, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 4], self.franka_dof_targets[:, 4])
+        self.franka_dof_targets[:, 5] = torch.where(franka_work==1, tensor_clamp(
+            targets, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 5], self.franka_dof_targets[:, 5])
+        self.franka_dof_targets[:, 6] = torch.where(franka_work==1, tensor_clamp(
+            targets, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 6], self.franka_dof_targets[:, 6])
+        self.franka_dof_targets[:, 7] = torch.where(franka_work==1, tensor_clamp(
+            targets, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 7], self.franka_dof_targets[:, 7])
+        self.franka_dof_targets[:, 8] = torch.where(franka_work==1, tensor_clamp(
+            targets, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 8], self.franka_dof_targets[:, 8])
 
-        self.franka_dof_targets[:, :self.num_franka_dofs] =tensor_clamp(
-            targets, self.franka_dof_lower_limits, self.franka_dof_upper_limits)
+        # self.franka_dof_targets[:, :self.num_franka_dofs] =tensor_clamp(
+        #     targets, self.franka_dof_lower_limits, self.franka_dof_upper_limits)
         targets_1 = self.franka_dof_targets[:,
                     self.num_franka_dofs: 2 * self.num_franka_dofs] + self.franka_dof_speed_scales * self.dt \
                     * self.actions[:, 9:18] * self.action_scale
 
         # # TODO: rewrie it in simple
-        # self.franka_dof_targets[:, 9] = torch.where(franka1_work==1, tensor_clamp(
-        #     targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 0], self.franka_dof_targets[:, 9])
-        # self.franka_dof_targets[:, 10] = torch.where(franka1_work==1, tensor_clamp(
-        #     targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 1], self.franka_dof_targets[:, 10])
-        # self.franka_dof_targets[:, 11] = torch.where(franka1_work==1, tensor_clamp(
-        #     targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 2], self.franka_dof_targets[:, 11])
-        # self.franka_dof_targets[:, 12] = torch.where(franka1_work==1, tensor_clamp(
-        #     targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 3], self.franka_dof_targets[:, 12])
-        # self.franka_dof_targets[:, 13] = torch.where(franka1_work==1, tensor_clamp(
-        #     targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 4], self.franka_dof_targets[:, 13])
-        # self.franka_dof_targets[:, 14] = torch.where(franka1_work==1, tensor_clamp(
-        #     targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 5], self.franka_dof_targets[:, 14])
-        # self.franka_dof_targets[:, 15] = torch.where(franka1_work==1, tensor_clamp(
-        #     targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 6], self.franka_dof_targets[:, 15])
-        # self.franka_dof_targets[:, 16] = torch.where(franka1_work==1, tensor_clamp(
-        #     targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 7], self.franka_dof_targets[:, 16])
-        # self.franka_dof_targets[:, 17] = torch.where(franka1_work==1, tensor_clamp(
-        #     targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 8],self.franka_dof_targets[:, 17])
+        self.franka_dof_targets[:, 9] = torch.where(franka1_work==1, tensor_clamp(
+            targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 0], self.franka_dof_targets[:, 9])
+        self.franka_dof_targets[:, 10] = torch.where(franka1_work==1, tensor_clamp(
+            targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 1], self.franka_dof_targets[:, 10])
+        self.franka_dof_targets[:, 11] = torch.where(franka1_work==1, tensor_clamp(
+            targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 2], self.franka_dof_targets[:, 11])
+        self.franka_dof_targets[:, 12] = torch.where(franka1_work==1, tensor_clamp(
+            targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 3], self.franka_dof_targets[:, 12])
+        self.franka_dof_targets[:, 13] = torch.where(franka1_work==1, tensor_clamp(
+            targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 4], self.franka_dof_targets[:, 13])
+        self.franka_dof_targets[:, 14] = torch.where(franka1_work==1, tensor_clamp(
+            targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 5], self.franka_dof_targets[:, 14])
+        self.franka_dof_targets[:, 15] = torch.where(franka1_work==1, tensor_clamp(
+            targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 6], self.franka_dof_targets[:, 15])
+        self.franka_dof_targets[:, 16] = torch.where(franka1_work==1, tensor_clamp(
+            targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 7], self.franka_dof_targets[:, 16])
+        self.franka_dof_targets[:, 17] = torch.where(franka1_work==1, tensor_clamp(
+            targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)[:, 8],self.franka_dof_targets[:, 17])
 
-
-        self.franka_dof_targets[:, self.num_franka_dofs:2 * self.num_franka_dofs] = tensor_clamp(
-            targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)
+        # self.franka_dof_targets[:, self.num_franka_dofs:2 * self.num_franka_dofs] = tensor_clamp(
+        #     targets_1, self.franka_dof_lower_limits, self.franka_dof_upper_limits)
         # grip_act_spoon=torch.where(self.gripped==1,torch.Tensor([[0.004, 0.004]] * self.num_envs).to(self.device), torch.Tensor([[0.04, 0.04]] * self.num_envs).to(self.device))
         # self.franka_dof_targets[:,7]=torch.where(gripper_sep_spoon<0.008,0.04, 0.005)
         # self.franka_dof_targets[:,8]=torch.where(gripper_sep_spoon<0.008,0.04, 0.005)
@@ -1295,7 +1294,7 @@ def compute_franka_reward(
         num_envs: int, dist_reward_scale: float, rot_reward_scale: float, around_handle_reward_scale: float,
         lift_reward_scale: float, finger_dist_reward_scale: float, action_penalty_scale: float, distX_offset: float,
         max_episode_length: float
-) -> Tuple[Tensor, Tensor, Dict[str, Union[Dict[str, Tuple[Tensor, Union[Tensor, float]]], Dict[str, Tuple[Tensor, float]], Dict[str, Tensor]]], Tensor, Tensor, int, int]:
+) -> Tuple[Tensor, Tensor, Dict[str, Union[Dict[str, Tuple[Tensor, Union[Tensor, float]]], Dict[str, Tuple[Tensor, float]], Dict[str, Tensor]]], Tensor, Tensor, Tensor, Tensor]:
 
     """
     Tuple[Tensor, Tensor, Dict[str, Union[Dict[str, Tuple[Tensor, float]],
@@ -1656,16 +1655,16 @@ def compute_franka_reward(
     franka1_work = caught | franka1_work_alone
     # ................................................................................................................
     ## sum of rewards
-    sf = 1  # spoon flag
-    cf = 0  # cup flag
+    # sf = 1  # spoon flag
+    # cf = 0  # cup flag
     # print("uncaught",uncaught)
     # print("caught", caught)
-    # sf= torch.where(uncaught==1,1,0)
-    # sf = torch.where(franka_work_alone, 1, sf)
-    # sf = torch.where(caught==1, 1, sf)
-    # cf= torch.where(uncaught==1,0,1)
-    # cf = torch.where(franka1_work_alone, 1, cf)
-    # cf = torch.where(caught==1, 1, cf)
+    sf= torch.where(uncaught==1,1,0)
+    sf = torch.where(franka_work_alone, 1, sf)
+    sf = torch.where(caught==1, 1, sf)
+    cf= torch.where(uncaught==1,0,1)
+    cf = torch.where(franka1_work_alone, 1, cf)
+    cf = torch.where(caught==1, 1, cf)
     stage1 = 1  # stage1 flag
     stage2 = 0  # stage2 flag
     stage3 = 0  # stage3 flag
