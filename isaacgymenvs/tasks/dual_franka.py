@@ -737,7 +737,10 @@ class DualFranka(VecTask):
         # reset franka with "pos"
         self.franka_dof_pos[env_ids, :] = pos
         self.franka_dof_vel[env_ids, :] = torch.zeros_like(self.franka_dof_vel[env_ids])
+        '''
         self.franka_dof_targets[env_ids, :self.num_franka_dofs] = pos
+        '''
+      #
         
         # reset franka1
         pos_1 = tensor_clamp(
@@ -746,7 +749,10 @@ class DualFranka(VecTask):
             self.franka_dof_lower_limits, self.franka_dof_upper_limits)
         self.franka_dof_pos_1[env_ids, :] = pos_1
         self.franka_dof_vel_1[env_ids, :] = torch.zeros_like(self.franka_dof_vel_1[env_ids])
-        self.franka_dof_targets[env_ids, self.num_franka_dofs: 2 * self.num_franka_dofs] = pos_1
+        """"
+         self.franka_dof_targets[env_ids, self.num_franka_dofs: 2 * self.num_franka_dofs] = pos_1
+        """
+   #
 
         # reset cup
         self.cup_positions[env_ids, 0] = -0.3
@@ -1648,8 +1654,8 @@ def compute_franka_reward(
 
     uncaught= torch.where(gripped<1,torch.where(gripped_1<1,1,0),0)
     caught= torch.where(gripped>0,torch.where(gripped_1>0,1,0),0)
-    franka_work_alone = torch.lt(gripped, gripped_1)
-    franka1_work_alone = torch.gt(gripped, gripped_1)
+    franka_work_alone = torch.lt(gripped, gripped_1) #franka ungripped franka1 gripped
+    franka1_work_alone = torch.gt(gripped, gripped_1)#franka gripped franka1 ungripped
     franka_work = caught | franka_work_alone
     franka1_work = caught | franka1_work_alone
     # ................................................................................................................
@@ -1662,7 +1668,7 @@ def compute_franka_reward(
     sf = torch.where(franka_work_alone, 1, sf)
     sf = torch.where(caught==1, 1, sf)
     cf= torch.where(uncaught==1,0,3)
-    cf = torch.where(franka1_work_alone, 3, cf)
+    cf = torch.where(franka_work_alone, 0, cf)
     cf = torch.where(caught==1, 3, cf)
     stage1 = 1  # stage1 flag
     stage2 = 0  # stage2 flag
