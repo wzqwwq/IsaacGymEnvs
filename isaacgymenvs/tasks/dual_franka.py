@@ -737,8 +737,9 @@ class DualFranka(VecTask):
         # reset franka with "pos"
         self.franka_dof_pos[env_ids, :] = pos
         self.franka_dof_vel[env_ids, :] = torch.zeros_like(self.franka_dof_vel[env_ids])
-        '''
         self.franka_dof_targets[env_ids, :self.num_franka_dofs] = pos
+        '''
+
         '''
       #
         
@@ -749,8 +750,9 @@ class DualFranka(VecTask):
             self.franka_dof_lower_limits, self.franka_dof_upper_limits)
         self.franka_dof_pos_1[env_ids, :] = pos_1
         self.franka_dof_vel_1[env_ids, :] = torch.zeros_like(self.franka_dof_vel_1[env_ids])
+        self.franka_dof_targets[env_ids, self.num_franka_dofs: 2 * self.num_franka_dofs] = pos_1
         """"
-         self.franka_dof_targets[env_ids, self.num_franka_dofs: 2 * self.num_franka_dofs] = pos_1
+
         """
    #
 
