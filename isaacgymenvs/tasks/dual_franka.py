@@ -1661,9 +1661,9 @@ def compute_franka_reward(
     sf= torch.where(uncaught==1,1,0)
     sf = torch.where(franka_work_alone, 1, sf)
     sf = torch.where(caught==1, 1, sf)
-    cf= torch.where(uncaught==1,0,2)
-    cf = torch.where(franka1_work_alone, 2, cf)
-    cf = torch.where(caught==1, 2, cf)
+    cf= torch.where(uncaught==1,0,3)
+    cf = torch.where(franka1_work_alone, 3, cf)
+    cf = torch.where(caught==1, 3, cf)
     stage1 = 1  # stage1 flag
     stage2 = 0  # stage2 flag
     stage3 = 0  # stage3 flag
