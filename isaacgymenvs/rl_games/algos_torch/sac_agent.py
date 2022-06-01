@@ -477,7 +477,7 @@ class SACAgent(BaseAlgorithm):
             scaled_play_time = play_time
             curr_frames = self.num_frames_per_epoch
             self.frame += curr_frames
-            frame = self.frame #TODO: Fix frame
+            frame = self.frame  # TODO: Fix frame
             # print(frame)
 
             if self.print_stats:
